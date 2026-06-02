@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-pramuka-green: #1B4332;
+  --color-pramuka-green-light: #2D6A4F;
+  --color-pramuka-green-dark: #0e271d;
+  --color-pramuka-gold: #F4A800;
+  --color-pramuka-gold-light: #FFC107;
+  --color-pramuka-brown: #6F4E37;
+  --color-pramuka-earth: #D4A373;
+  --color-pramuka-dark-bg: #091711;
+  
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Simulated scout badge shine/pattern */
+.scout-pattern {
+  background-image: radial-gradient(#1b4332 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.04;
+}
+
+.scout-pattern-dark {
+  background-image: radial-gradient(#f4a800 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.05;
+}
+
+/* Pulse animation for active record */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
+}
+
+.pulse-active {
+  animation: soft-pulse 2s infinite ease-in-out;
+}

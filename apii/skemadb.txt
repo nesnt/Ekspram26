@@ -1,0 +1,55 @@
+{
+  "users": {
+    "tipe": "Collection",
+    "deskripsi": "Menyimpan data akun yang bisa login ke aplikasi (Admin, Pembina, Ketua Regu).",
+    "struktur_dokumen": {
+      "uid": "String (Primary Key dari Firebase Authentication)",
+      "username": "String (Nama pengguna/panggilan, misal: 'kak_nabil')",
+      "email": "String (Alamat email untuk login)",
+      "role": "String [ADMIN | PEMBINA | KETUA_REGU]",
+      "regu_id": "String (Opsional, diisi nama regu jika role-nya KETUA_REGU)",
+      "created_at": "Timestamp"
+    }
+  },
+
+  "anggota": {
+    "tipe": "Collection",
+    "deskripsi": "Data induk seluruh anggota/siswa Pramuka aktif yang akan diabsen.",
+    "struktur_dokumen": {
+      "id": "String (Auto-generated ID oleh Firestore)",
+      "nama": "String (Nama lengkap anggota)",
+      "regu": "String (Nama regu, misal: 'Garuda', 'Melati', 'Cendrawasih')",
+      "tipe": "String [SISWA | SISWI]",
+      "kelas": "String (Kelas sekolah, contoh: 'X RPL 1', 'XI TJKT 2', dll)",
+      "status_aktif": "Boolean (true/false, berguna jika ada anggota yang lulus/keluar)",
+      "created_at": "Timestamp"
+    }
+  },
+
+  "kegiatan": {
+    "tipe": "Collection",
+    "deskripsi": "Menyimpan informasi log/catatan setiap kegiatan Pramuka yang dilaksanakan.",
+    "struktur_dokumen": {
+      "id": "String (Auto-generated ID oleh Firestore)",
+      "judul": "String (Nama kegiatan, misal: 'Latihan Sandi Morse & Semaphore')",
+      "tanggal": "String (Format ISO YYYY-MM-DD atau Timestamp)",
+      "catatan": "String (Deskripsi ringkas jalannya latihan atau instruksi)",
+      "gdrive_photo_id": "String (ID file foto yang didapat setelah upload ke Google Drive)",
+      "dibuat_oleh": "String (UID dari koleksi users yang menginput kegiatan ini)",
+      "created_at": "Timestamp"
+    }
+  },
+
+  "absensi": {
+    "tipe": "Collection",
+    "deskripsi": "Tabel Tambahan (Junction). Menyimpan status kehadiran setiap anggota pada kegiatan tertentu.",
+    "struktur_dokumen": {
+      "id": "String (Auto-generated ID oleh Firestore)",
+      "kegiatan_id": "String (Foreign Key -> merujuk ke id di koleksi kegiatan)",
+      "anggota_id": "String (Foreign Key -> merujuk ke id di koleksi anggota)",
+      "nama_anggota": "String (Denormalisasi: opsional, agar frontend tidak perlu fetch data anggota lagi hanya untuk nama)",
+      "status": "String [HADIR | SAKIT | IZIN | ALFA]",
+      "updated_at": "Timestamp"
+    }
+  }
+}
