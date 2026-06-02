@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Activity, Student } from "../types";
 import { TunasKelapaIcon, TendaIcon, BintangTigaIcon } from "./Icons";
+import { exportReportToDocx } from "../utils/reportExporter";
 import { 
   Download, 
   Share2, 
@@ -94,13 +95,43 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
     };
   }, [filteredActivities, siswaList, siswiList]);
 
-  const handleDownload = () => {
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const handleDownload = async () => {
     setIsDownloading(true);
-    setTimeout(() => {
+    setDownloadError(null);
+    try {
+      const namaBulan = namaBulanMap[selectedBulan] || "BULAN";
+      
+      await exportReportToDocx({
+        activities,
+        siswaList,
+        siswiList,
+        selectedBulan,
+        selectedTahun,
+        pembinaName,
+        kamabigusName
+      }).then((blob) => {
+        const filename = `LAPORAN_BULANAN_PRAMUKA_${namaBulan.toUpperCase()}_${selectedTahun}.docx`;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 4000);
+      });
+    } catch (err: any) {
+      console.error(err);
+      setDownloadError(err.message || "Gagal membuat laporan bulanan.");
+      setTimeout(() => setDownloadError(null), 5000);
+    } finally {
       setIsDownloading(false);
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 3000);
-    }, 1200);
+    }
   };
 
   const handlePrint = () => {
@@ -307,7 +338,7 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
           ) : (
             <>
               <Download className="w-4 h-4 shrink-0" />
-              <span>Download PDF</span>
+              <span>Download Laporan (Word)</span>
             </>
           )}
         </button>
@@ -343,6 +374,13 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-emerald-800 text-white px-4 py-3 rounded-xl shadow-2xl z-55 flex items-center gap-2.5 animate-fade-in text-xs font-bold leading-normal">
           <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>Laporan Berhasil Dibuat & Diunduh ke perangkat Anda! ✓</span>
+        </div>
+      )}
+
+      {downloadError && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-900 border border-red-800 text-white px-4 py-3 rounded-xl shadow-2xl z-55 flex items-center gap-2.5 animate-fade-in text-xs font-bold leading-normal">
+          <X className="w-4 h-4 text-red-405 shrink-0" />
+          <span>Error: {downloadError}</span>
         </div>
       )}
 

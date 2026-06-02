@@ -1,0 +1,89 @@
+# Rencana Implementasi Fitur Cetak Laporan Bulanan (.docx)
+
+Rencana ini bertujuan untuk mengimplementasikan fitur cetak/unduh laporan bulanan resmi Pramuka ke dalam format **Microsoft Word (.docx)** secara langsung dari peramban pengguna (client-side). Fitur ini akan menggunakan file template Word yang sudah Anda sediakan: `LAPORAN_BULANAN(Template).docx` yang berisi penanda/placeholders di dalam kurung kurawal `{}`.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Penyajian File Template di Folder Public**:
+> Agar aplikasi React dapat membaca berkas Word secara dinamis di peramban, file template `c:\code\pramuka\sipra\template_laporan\LAPORAN_BULANAN(Template).docx` harus disalin ke dalam folder `public/template_laporan/` pada proyek Vite Anda. Dengan begitu, aplikasi dapat melakukan `fetch()` pada file tersebut saat pengguna mengklik tombol download.
+
+> [!WARNING]
+> **Penanganan Format Dokumentasi Foto**:
+> Penambahan gambar biner secara dinamis ke dalam struktur XML internal `.docx` (OpenXML) dari sisi klien (frontend) memiliki kompleksitas sangat tinggi dan membutuhkan library yang sangat besar. 
+>
+> Sebagai solusi yang sangat efisien dan rapi, kami mengusulkan untuk mengganti placeholder `{gambar kegiatan 1}` dengan **Tautan/Hyperlink Aktif ke Foto di Google Drive** yang sudah diunggah sebelumnya. Ini akan membuat berkas Word tetap berukuran kecil, terstruktur rapi, dan langsung terintegrasi dengan Google Drive.
+
+## Open Questions
+
+1. **Format Tanda Centang & Absensi**:
+   Apakah tanda centang `"✓"` untuk hadir dan tanda strip `"-"` untuk tidak hadir sudah sesuai dengan keinginan Anda? 
+2. **Kustomisasi Tanda Tangan Pembina / Kamabigus**:
+   Di dalam file template Anda, bagian tanda tangan memiliki nama statis yaitu **"Maya Kusmayanti M, P.d"** dan **"Vicky Umbara, S.Pd"**. Di aplikasi, kami menyediakan input teks untuk mengisi nama Pembina dan Kamabigus secara dinamis. Apakah Anda ingin kami mengganti nama statis di template tersebut secara otomatis dengan nama dinamis yang Anda ketikkan di form?
+3. **Format Tanggal Kegiatan**:
+   Kami akan menggunakan format tanggal Indonesia untuk placeholders berikut:
+   - `{tanggal kegiatan 1 format [tanggal/bulan/tahun]}` -> `02/05/2026` (DD/MM/YYYY)
+   - `{Tanggal tengan format [tanggal + nama bulan + tahun]}` -> `2 Mei 2026`
+   - `{tanggal kegiatan 1 dengan format [hari, tanggal + nama bulan + tahun]}` -> `Sabtu, 2 Mei 2026`
+   Apakah format-format ini sudah sesuai?
+
+---
+
+## Proposed Changes
+
+### [Dependensi & File Statis]
+
+#### [MODIFY] [package.json](file:///c:/code/pramuka/sipra/package.json)
+- Menambahkan dependensi `jszip` untuk membuka, memanipulasi, dan mengemas kembali file `.docx` (yang sebenarnya adalah sebuah file ZIP berisi file-file XML).
+
+#### [NEW] [LAPORAN_BULANAN(Template).docx](file:///c:/code/pramuka/sipra/public/template_laporan/LAPORAN_BULANAN(Template).docx)
+- Menyalin berkas template `.docx` dari `template_laporan/` ke folder `public/template_laporan/` agar dapat diakses oleh server lokal dan dibaca melalui `fetch` di browser.
+
+---
+
+### [Utilitas Pengolah Dokumen]
+
+#### [NEW] [reportExporter.ts](file:///c:/code/pramuka/sipra/src/utils/reportExporter.ts)
+- Membuat modul utilitas pengolah dokumen dengan algoritma berikut:
+  1. Mengunduh file template `.docx` sebagai `ArrayBuffer` dari folder `/public`.
+  2. Memuat data biner menggunakan `JSZip`.
+  3. Mengekstrak file `word/document.xml` dan mem-parse XML tersebut menggunakan `DOMParser` bawaan browser menjadi objek DOM.
+  4. Membuat fungsi pembantu pencarian paragraf yang robust untuk mengganti teks placeholder (sekaligus menggabungkan tag text `<w:t>` yang terpecah oleh MS Word).
+  5. **Tabel Pelatih**: Mencari baris template pelatih, menduplikasinya untuk setiap kegiatan di bulan terpilih, mengisi data nomor, tanggal terformat, waktu, dan materi, serta menghapus baris pembantu `{dan seterusnya...}`.
+  6. **Tabel Anggota (Putra & Putri)**: 
+     - Membaca baris header tanggal dan mengganti dengan tanggal latihan riil di bulan tersebut.
+     - Mencari baris template anggota (Putra/Putri), menyalin baris tersebut untuk setiap anggota, mengisi nama dan kelas, serta menandai kolom kehadiran (kolom 3 sampai 6) dengan tanda `"✓"` jika hadir dan `"-"` jika absen.
+     - Menghapus baris template asli setelah data siswa berhasil dimasukkan.
+  7. **Bagian Dokumentasi**: Mengganti placeholder tanggal dokumentasi dan gambar dokumentasi dengan detail materi serta link tautan Google Drive foto kegiatan.
+  8. Men-serialize kembali objek DOM menjadi string XML dan memasukkannya kembali ke zip.
+  9. Mengemas ulang zip sebagai file `.docx` (Blob) dan memicu unduhan di peramban.
+
+---
+
+### [Antarmuka Pengguna]
+
+#### [MODIFY] [GenerateScreen.tsx](file:///c:/code/pramuka/sipra/src/components/GenerateScreen.tsx)
+- Mengimpor utilitas `reportExporter` baru.
+- Mengubah fungsi `handleDownload` dari yang sebelumnya memicu animasi simulasi, menjadi pemanggilan fungsi pengolah dokumen riil.
+- Menampilkan indikator loading yang cantik selama proses pengolahan dokumen sedang berlangsung.
+- Menyediakan penanganan error jika file template gagal dimuat.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Menjalankan `npm run lint` untuk memastikan TypeScript aman tanpa ada error kompilasi/type-checking pada penambahan library JSZip.
+
+### Manual Verification
+1. Jalankan aplikasi menggunakan `npm run dev`.
+2. Masuk ke halaman **Generate Laporan**.
+3. Pilih periode bulan **Mei 2026** (karena memiliki data latihan).
+4. Klik tombol **Download Laporan** (sebelumnya bernama "Download PDF").
+5. Verifikasi bahwa peramban mengunduh file `.docx` baru bernama `LAPORAN_BULANAN_MEI_2026.docx`.
+6. Buka file tersebut menggunakan Microsoft Word atau Google Docs dan pastikan:
+   - Bulan dan Tahun di judul terisi dengan benar.
+   - Tabel pelatih terisi dengan seluruh kegiatan di bulan tersebut lengkap dengan materi dan waktu.
+   - Tabel Daftar Hadir Putra dan Putri memiliki nama-nama siswa yang aktif dengan tanda centang `"✓"` dan strip `"-"` yang tepat sesuai data absensi di Firestore.
+   - Kolom tanggal di atas tabel absensi terisi dengan tanggal latihan yang tepat.
+   - Bagian Dokumentasi memiliki tautan aktif yang mengarah ke foto di Google Drive.
