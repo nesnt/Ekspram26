@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { TunasKelapaIcon, TendaIcon, BintangTigaIcon } from "./Icons";
+import { TunasKelapaIcon, BintangTigaIcon } from "./Icons";
 import { Lock, User, Sparkles, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 interface LoginScreenProps {
@@ -10,104 +10,50 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState("pembina");
-  const [password, setPassword] = useState("pramuka123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorText, setErrorText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleCreateDemoAccounts = async () => {
-    setIsLoading(true);
-    setErrorText("");
-    try {
-      let registeredUser = false;
-      // 1. Create pembina
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, "pembina@sipra.com", "pramuka123");
-        await setDoc(doc(db, "users", cred.user.uid), {
-          uid: cred.user.uid,
-          username: "pembina",
-          email: "pembina@sipra.com",
-          role: "PEMBINA",
-          created_at: new Date()
-        });
-        registeredUser = true;
-      } catch (err: any) {
-        if (err.code !== "auth/email-already-in-use") throw err;
-      }
-
-      // 2. Create admin
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, "admin@sipra.com", "admin123");
-        await setDoc(doc(db, "users", cred.user.uid), {
-          uid: cred.user.uid,
-          username: "admin",
-          email: "admin@sipra.com",
-          role: "ADMIN",
-          created_at: new Date()
-        });
-        registeredUser = true;
-      } catch (err: any) {
-        if (err.code !== "auth/email-already-in-use") throw err;
-      }
-
-      setIsLoading(false);
-      setErrorText("");
-      alert("Inisialisasi akun demo sukses! Anda otomatis masuk sebagai Pembina.");
-      onLoginSuccess("pembina");
-    } catch (err: any) {
-      console.error("Gagal inisialisasi:", err);
-      setIsLoading(false);
-      setErrorText("Gagal inisialisasi: " + err.message);
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorText("");
 
-    if (!username.trim() || !password.trim()) {
-      setErrorText("Nama pengguna dan kata sandi wajib diisi!");
+    if (!email.trim() || !password.trim()) {
+      setErrorText("Email dan kata sandi wajib diisi!");
       return;
     }
 
     setIsLoading(true);
 
-    // If username doesn't look like an email, append default domain
-    let emailInput = username.trim();
-    if (!emailInput.includes("@")) {
-      emailInput = `${emailInput}@sipra.com`;
-    }
-
-    signInWithEmailAndPassword(auth, emailInput, password)
+    signInWithEmailAndPassword(auth, email.trim(), password)
       .then(async (userCredential) => {
         const user = userCredential.user;
-
         try {
-          // Fetch additional profile data from Firestore
           const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
-
           if (userDoc.exists()) {
             const userData = userDoc.data();
             onLoginSuccess(userData.username || user.email || "Pengurus");
           } else {
-            // Fallback to local name
-            onLoginSuccess(username.trim());
+            onLoginSuccess(user.email || "Pengurus");
           }
         } catch (dbErr) {
           console.error("Gagal mengambil data user di Firestore:", dbErr);
-          // Still succeed the login if Auth succeeded
-          onLoginSuccess(username.trim());
+          onLoginSuccess(user.email || "Pengurus");
         }
       })
       .catch((err: any) => {
         setIsLoading(false);
-        // Translate common Firebase errors for better UX
-        if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
-          setErrorText("Nama pengguna/email atau sandi salah!");
+        if (
+          err.code === "auth/invalid-credential" ||
+          err.code === "auth/user-not-found" ||
+          err.code === "auth/wrong-password"
+        ) {
+          setErrorText("Email atau kata sandi salah!");
         } else if (err.code === "auth/invalid-email") {
-          setErrorText("Format email/nama pengguna tidak valid.");
+          setErrorText("Format email tidak valid.");
         } else {
           setErrorText("Gagal masuk: " + err.message);
         }
@@ -129,12 +75,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         <div>
           <div className="flex items-center justify-center gap-1.5">
             <h2 className="font-sans font-black text-2xl tracking-tight text-gray-800 dark:text-white">
-              SiLapor <span className="text-pramuka-gold">Pramuka</span>
+              SiGAP <span className="text-pramuka-gold">13</span>
             </h2>
             <Sparkles className="w-4 h-4 text-pramuka-gold" />
           </div>
           <p className="text-[11px] text-gray-400 dark:text-emerald-550 font-mono tracking-wider uppercase mt-1">
-            Sistem Catat & Lapor Gugus Depan
+            Sistem Catat & Lapor Gugus Depan SMKN 13
           </p>
           <div className="flex justify-center mt-1.5">
             <BintangTigaIcon className="scale-90" />
@@ -164,18 +110,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* Username Input */}
+          {/* Email Input */}
           <div>
             <label className="text-[10px] font-bold font-mono text-gray-400 dark:text-emerald-300 uppercase tracking-wider block mb-1">
-              Nama Pengguna (Username)
+              Email
             </label>
             <div className="relative flex items-center">
               <User className="absolute left-3 w-4 h-4 text-gray-400" />
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="cth: pembina"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="cth: pembina@email.com"
                 required
                 className="w-full bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-emerald-900 rounded-xl pl-10 pr-3 py-2.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pramuka-green"
               />
@@ -193,7 +139,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Sandi rahasia"
+                placeholder="Kata sandi akun"
                 required
                 className="w-full bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-emerald-900 rounded-xl pl-10 pr-10 py-2.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pramuka-green"
               />
@@ -206,25 +152,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </button>
             </div>
           </div>
-
-          {/* Tips card so they know correct logins immediately */}
-          <div className="bg-amber-50 dark:bg-emerald-950/20 border border-amber-100 dark:border-emerald-950/40 p-2.5 rounded-xl text-[10px] text-gray-550 dark:text-emerald-200">
-            <span className="font-bold text-pramuka-gold">Demo Akses Cepet:</span>
-            <div className="mt-1 font-mono flex flex-col gap-0.5">
-              <span>• Username: <strong className="text-pramuka-green dark:text-teal-400">pembina</strong></span>
-              <span>• Password: <strong className="text-pramuka-green dark:text-teal-400">pramuka123</strong></span>
-            </div>
-          </div>
-
-          {/* Button to init accounts and seed database */}
-          <button
-            type="button"
-            onClick={handleCreateDemoAccounts}
-            disabled={isLoading}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2.5 rounded-xl border border-amber-500 shadow-sm cursor-pointer active:scale-95 transition-all text-center"
-          >
-            ⚙️ Inisialisasi Akun & Database
-          </button>
 
           {/* Submit Button */}
           <button

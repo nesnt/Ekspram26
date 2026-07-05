@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Student } from "../types";
+import { Student, UserRole } from "../types";
 import { TunasKelapaIcon, TendaIcon } from "./Icons";
 import { CLASS_OPTIONS } from "../data";
 import {
@@ -15,7 +15,9 @@ import {
   Filter,
   UserCheck,
   Award,
-  BookOpen
+  BookOpen,
+  UserCog,
+  ShieldCheck,
 } from "lucide-react";
 
 interface AdminPanelScreenProps {
@@ -24,6 +26,9 @@ interface AdminPanelScreenProps {
   onUpdateStudent: (id: string, updated: { name: string; regu: string; type: "SISWA" | "SISWI"; kelas: string }) => void;
   onDeleteStudent: (id: string) => void;
   onNavigateBack: () => void;
+  onViewStudentDetail: (student: Student) => void;
+  currentUserRole: UserRole;
+  onNavigateToUserManagement: () => void;
 }
 
 export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
@@ -32,6 +37,9 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
   onUpdateStudent,
   onDeleteStudent,
   onNavigateBack,
+  onViewStudentDetail,
+  currentUserRole,
+  onNavigateToUserManagement,
 }) => {
   const [activeTab, setActiveTab] = useState<"ALL" | "SISWA" | "SISWI">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -190,6 +198,28 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
         </div>
       </div>
 
+      {/* PEMBINA ONLY: Kelola Akun Banner */}
+      {currentUserRole === "PEMBINA" && (
+        <button
+          onClick={onNavigateToUserManagement}
+          className="w-full flex items-center justify-between bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10 p-3.5 rounded-2xl border border-amber-200/60 dark:border-amber-950/60 hover:border-amber-400 dark:hover:border-amber-700 transition-all cursor-pointer active:scale-[0.99] group"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="bg-amber-500/20 dark:bg-amber-500/10 p-2 rounded-xl border border-amber-300/30">
+              <UserCog className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-xs text-gray-800 dark:text-slate-100">Kelola Akun Pengguna</p>
+              <p className="text-[10px] text-gray-400 dark:text-emerald-400">Tambah / hapus akun Krani & Pembina</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="text-[10px] font-bold font-mono">Pembina</span>
+          </div>
+        </button>
+      )}
+
       {/* Search Toolbar & Quick Add Button */}
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -269,9 +299,12 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
                 >
                   <div className="truncate pr-3 space-y-0.5 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <h4 className="font-sans font-extrabold text-[#111] dark:text-white text-xs truncate">
+                      <button
+                        onClick={() => onViewStudentDetail(student)}
+                        className="font-sans font-extrabold text-[#111] dark:text-white text-xs truncate hover:text-pramuka-green dark:hover:text-pramuka-gold hover:underline cursor-pointer transition-colors text-left"
+                      >
                         {student.name}
-                      </h4>
+                      </button>
                       <span className={`text-[8px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
                         isPi 
                           ? "bg-pink-50 text-pink-600 dark:bg-pink-950/40 dark:text-pink-400 border border-pink-100 dark:border-pink-950" 

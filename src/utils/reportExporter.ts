@@ -146,7 +146,9 @@ export async function exportReportToDocx({
   if (onProgress) onProgress(10);
 
   // 1. Fetch template from public folder
-  const templateUrl = "/template_laporan/LAPORAN_BULANAN(Template).docx";
+  // Use import.meta.env.BASE_URL to support Vite base path config (e.g. /Ekspram26/)
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const templateUrl = `${base}/template_laporan/LAPORAN_BULANAN_Template.docx`;
   const response = await fetch(templateUrl);
   if (!response.ok) {
     throw new Error(`Gagal memuat template laporan. Hubungi administrator atau pastikan file template sudah ada di folder public/template_laporan.`);

@@ -1,12 +1,14 @@
 import React from "react";
 import { TunasKelapaIcon } from "./Icons";
-import { Sun, Moon, Sparkles, LogOut, User } from "lucide-react";
+import { Sun, Moon, Sparkles, LogOut, User, ShieldCheck, ClipboardList } from "lucide-react";
+import { UserRole } from "../types";
 
 interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
   gugusDepan?: string;
   loggedInUser: string | null;
+  currentUserRole: UserRole;
   onLogout: () => void;
 }
 
@@ -15,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   setDarkMode,
   gugusDepan = "Gugus Depan 25049 - 25050",
   loggedInUser,
+  currentUserRole,
   onLogout,
 }) => {
   return (
@@ -31,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="font-sans font-extrabold text-lg tracking-tight leading-none text-white">
-                SiLapor <span className="text-pramuka-gold">Pramuka</span>
+                SiGAP <span className="text-pramuka-gold">13</span>
               </h1>
               <Sparkles className="w-3.5 h-3.5 text-pramuka-gold animate-bounce" />
             </div>
@@ -77,9 +80,21 @@ export const Header: React.FC<HeaderProps> = ({
           <span>SMKN 13 Bandung</span>
         </div>
         {loggedInUser && (
-          <span className="font-mono text-[10px] bg-white/10 px-1.5 py-0.2 rounded text-pramuka-gold capitalize flex items-center gap-1">
-            <User className="w-3 h-3" /> Kak {loggedInUser}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1 ${
+              currentUserRole === "PEMBINA"
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                : "bg-teal-500/20 text-teal-300 border border-teal-500/30"
+            }`}>
+              {currentUserRole === "PEMBINA"
+                ? <><ShieldCheck className="w-2.5 h-2.5" /> Pembina</>
+                : <><ClipboardList className="w-2.5 h-2.5" /> Krani</>
+              }
+            </span>
+            <span className="font-mono text-[10px] bg-white/10 px-1.5 py-0.2 rounded text-pramuka-gold capitalize flex items-center gap-1">
+              <User className="w-3 h-3" /> Kak {loggedInUser}
+            </span>
+          </div>
         )}
       </div>
     </header>

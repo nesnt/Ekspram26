@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ScreenType, Activity, Student } from "./types";
+import { ScreenType, Activity, Student, UserRole } from "./types";
 import {
   DEFAULT_ACTIVITIES,
   DEFAULT_SISWA,
@@ -14,6 +14,8 @@ import { ReviewScreen } from "./components/ReviewScreen";
 import { GenerateScreen } from "./components/GenerateScreen";
 import { LoginScreen } from "./components/LoginScreen";
 import { AdminPanelScreen } from "./components/AdminPanelScreen";
+import { StudentDetailScreen } from "./components/StudentDetailScreen";
+import { UserManagementScreen } from "./components/UserManagementScreen";
 import { Sparkles, Calendar, Award, CheckCircle } from "lucide-react";
 import { auth, db } from "./firebase";
 import {
@@ -38,11 +40,13 @@ export default function App() {
   });
 
   const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>("KRANI");
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("LOGIN");
 
   const [students, setStudents] = useState<Student[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const [dbActivities, setDbActivities] = useState<any[]>([]);
   const [dbAbsensi, setDbAbsensi] = useState<any[]>([]);
@@ -54,19 +58,21 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Find user username in Firestore if possible, otherwise use email name
         const userDocRef = doc(db, "users", firebaseUser.uid);
         onSnapshot(userDocRef, (docSnapshot) => {
           if (docSnapshot.exists()) {
             const data = docSnapshot.data();
             setLoggedInUser(data.username || firebaseUser.email?.split("@")[0] || "User");
+            setCurrentUserRole((data.role as UserRole) || "KRANI");
           } else {
             setLoggedInUser(firebaseUser.email?.split("@")[0] || "User");
+            setCurrentUserRole("KRANI");
           }
         });
         setCurrentScreen("DASHBOARD");
       } else {
         setLoggedInUser(null);
+        setCurrentUserRole("KRANI");
         setCurrentScreen("LOGIN");
       }
     });
@@ -586,6 +592,7 @@ export default function App() {
             darkMode={darkMode}
             setDarkMode={setDarkMode}
             loggedInUser={loggedInUser}
+            currentUserRole={currentUserRole}
             onLogout={handleLogout}
           />
         )}
@@ -620,6 +627,26 @@ export default function App() {
               onUpdateStudent={handleUpdateStudent}
               onDeleteStudent={handleDeleteStudent}
               onNavigateBack={() => setCurrentScreen("DASHBOARD")}
+              onViewStudentDetail={(student) => {
+                setSelectedStudent(student);
+                setCurrentScreen("STUDENT_DETAIL");
+              }}
+              currentUserRole={currentUserRole}
+              onNavigateToUserManagement={() => setCurrentScreen("USER_MANAGEMENT")}
+            />
+          )}
+
+          {currentScreen === "USER_MANAGEMENT" && (
+            <UserManagementScreen
+              onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
+            />
+          )}
+
+          {currentScreen === "STUDENT_DETAIL" && selectedStudent && (
+            <StudentDetailScreen
+              student={selectedStudent}
+              activities={activities}
+              onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
             />
           )}
 

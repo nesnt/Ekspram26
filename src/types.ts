@@ -1,6 +1,15 @@
 /**
- * Types representing Scout Administration Application "SiLapor Pramuka"
+ * Types representing Scout Administration Application "SiGAP 13"
  */
+
+export type UserRole = "PEMBINA" | "KRANI";
+
+export interface AppUser {
+  uid: string;
+  username: string;
+  email: string;
+  role: UserRole;
+}
 
 export interface Student {
   id: string;
@@ -22,7 +31,7 @@ export interface Activity {
   absensiSiswi: { [studentId: string]: boolean }; // student.id -> isPresent
 }
 
-export type ScreenType = "LOGIN" | "ADMIN_PANEL" | "DASHBOARD" | "INPUT_STEP1" | "INPUT_STEP2" | "INPUT_STEP3" | "REVIEW" | "GENERATE";
+export type ScreenType = "LOGIN" | "ADMIN_PANEL" | "DASHBOARD" | "INPUT_STEP1" | "INPUT_STEP2" | "INPUT_STEP3" | "REVIEW" | "GENERATE" | "STUDENT_DETAIL" | "USER_MANAGEMENT";
 
 export interface DashboardStats {
   totalKegiatanBulanIni: number;
