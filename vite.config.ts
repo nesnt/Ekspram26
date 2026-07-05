@@ -7,7 +7,6 @@ export default defineConfig(() => {
   return {
     envPrefix: 'NEXT_PUBLIC_',
     plugins: [react(), tailwindcss()],
-    base: '/Ekspram26/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
