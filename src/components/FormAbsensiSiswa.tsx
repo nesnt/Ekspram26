@@ -57,7 +57,7 @@ export const FormAbsensiSiswa: React.FC<FormAbsensiSiswaProps> = ({
             {step === 2 ? "Absensi Siswa (Putra)" : "Absensi Siswi (Putri)"}
           </h2>
           <p className="text-[11px] text-gray-400 dark:text-emerald-700">
-            Langkah {step} dari 3: {step === 2 ? "Regu Putra (PA)" : "Regu Putri (PI)"}
+            Langkah {step} dari 3: {step === 2 ? "Sangga Putra (PA)" : "Sangga Putri (PI)"}
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export const FormAbsensiSiswa: React.FC<FormAbsensiSiswaProps> = ({
           <Search className="absolute left-3 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Cari nama anggota atau regu..."
+            placeholder="Cari nama anggota atau sangga..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white dark:bg-[#0d2318] border border-gray-200 dark:border-emerald-900 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"

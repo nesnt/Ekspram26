@@ -14,7 +14,7 @@ export interface AppUser {
 export interface Student {
   id: string;
   name: string;
-  regu: string; // Scout Patrol / Team (e.g., Eagle, Orchid)
+  regu: string; // Sangga (e.g., Penegas, Pendobrak, Perintis, Pencoba, Pelaksana)
   type: "SISWA" | "SISWI"; // Boy / Girl
   kelas: string; // School Class
 }

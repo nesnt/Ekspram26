@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Student, UserRole } from "../types";
 import { TunasKelapaIcon, TendaIcon } from "./Icons";
-import { CLASS_OPTIONS } from "../data";
+import { CLASS_OPTIONS, SANGGA_OPTIONS } from "../data";
 import {
   Users,
   Search,
@@ -51,7 +51,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
   
   // Field states for Create/Edit Form
   const [formName, setFormName] = useState("");
-  const [formRegu, setFormRegu] = useState("");
+  const [formRegu, setFormRegu] = useState(SANGGA_OPTIONS[0]);
   const [formType, setFormType] = useState<"SISWA" | "SISWI">("SISWA");
   const [formKelas, setFormKelas] = useState("X RPL 1");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
   // Handle opening add form
   const openAddModal = () => {
     setFormName("");
-    setFormRegu("");
+    setFormRegu(SANGGA_OPTIONS[0]);
     setFormType(activeTab === "SISWI" ? "SISWI" : "SISWA");
     setFormKelas("X RPL 1");
     setErrorText("");
@@ -115,14 +115,10 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
       setErrorText("Nama anggota wajib diisi!");
       return;
     }
-    if (!formRegu.trim()) {
-      setErrorText("Nama Regu wajib diisi!");
-      return;
-    }
 
     onAddStudent({
       name: formName.trim(),
-      regu: formRegu.trim(),
+      regu: formRegu,
       type: formType,
       kelas: formKelas
     });
@@ -136,14 +132,10 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
       setErrorText("Nama anggota wajib diisi!");
       return;
     }
-    if (!formRegu.trim()) {
-      setErrorText("Nama Regu wajib diisi!");
-      return;
-    }
 
     onUpdateStudent(selectedStudentId, {
       name: formName.trim(),
-      regu: formRegu.trim(),
+      regu: formRegu,
       type: formType,
       kelas: formKelas
     });
@@ -193,7 +185,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
           <p className="text-sm font-black text-pink-500 dark:text-pink-400">{stats.totalSiswi}</p>
         </div>
         <div className="bg-white dark:bg-[#0d2318] p-2 rounded-xl text-center border border-gray-100 dark:border-emerald-950/40">
-          <p className="text-[9px] text-gray-400 font-mono uppercase">Regu</p>
+          <p className="text-[9px] text-gray-400 font-mono uppercase">Sangga</p>
           <p className="text-sm font-black text-amber-600 dark:text-amber-400">{stats.totalRegu}</p>
         </div>
       </div>
@@ -226,7 +218,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Cari berdasarkan nama/regu..."
+            placeholder="Cari berdasarkan nama/sangga..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white dark:bg-[#0d2318] border border-gray-200 dark:border-emerald-900 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
@@ -417,19 +409,23 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
                 />
               </div>
 
-              {/* Patrol / Regu */}
+              {/* Sangga */}
               <div>
                 <label className="text-[10px] font-black font-mono text-gray-400 block mb-1 uppercase">
-                  Nama Regu / Satuan
+                  Sangga
                 </label>
-                <input
-                  type="text"
-                  placeholder={formType === "SISWA" ? "cth: Regu Elang atau Garuda" : "cth: Regu Melati atau Mawar"}
+                <select
                   value={formRegu}
                   onChange={(e) => setFormRegu(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-emerald-900 rounded-xl px-3 py-2.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none"
+                  className="w-full bg-gray-50 dark:bg-[#0c1f14]/50 border border-gray-200 dark:border-emerald-900 rounded-xl px-3 py-2.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none"
                   required
-                />
+                >
+                  {SANGGA_OPTIONS.map((s) => (
+                    <option key={s} value={s} className="text-gray-800 dark:text-emerald-100 dark:bg-[#0c1f14]">
+                      {s}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* School Class Selection */}
@@ -541,18 +537,23 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
                 />
               </div>
 
-              {/* Patrol / Regu */}
+              {/* Sangga */}
               <div>
                 <label className="text-[10px] font-black font-mono text-gray-400 block mb-1 uppercase">
-                  Nama Regu / Satuan
+                  Sangga
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formRegu}
                   onChange={(e) => setFormRegu(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-emerald-950/40 border border-gray-200 dark:border-emerald-900 rounded-xl px-3 py-2.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none"
+                  className="w-full bg-gray-50 dark:bg-[#0c1f14]/50 border border-gray-200 dark:border-emerald-900 rounded-xl px-3 py-2.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none"
                   required
-                />
+                >
+                  {SANGGA_OPTIONS.map((s) => (
+                    <option key={s} value={s} className="text-gray-800 dark:text-emerald-100 dark:bg-[#0c1f14]">
+                      {s}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* School Class Selection */}
@@ -605,7 +606,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
               </div>
               <h3 className="font-sans font-black text-gray-800 dark:text-slate-100 text-base">Hapus Anggota?</h3>
               <p className="text-xs text-gray-400 dark:text-emerald-300 leading-normal">
-                Apakah Anda yakin ingin menghapus <strong className="text-gray-700 dark:text-white">"{studentToDelete.name}"</strong> dari regu <strong className="text-white bg-slate-800 p-0.5 px-1.5 rounded text-[10px]">{studentToDelete.regu}</strong>? Anggota ini tidak akan muncul lagi di lembar absensi latihan rutin berikutnya.
+                Apakah Anda yakin ingin menghapus <strong className="text-gray-700 dark:text-white">"{studentToDelete.name}"</strong> dari sangga <strong className="text-white bg-slate-800 p-0.5 px-1.5 rounded text-[10px]">{studentToDelete.regu}</strong>? Anggota ini tidak akan muncul lagi di lembar absensi latihan rutin berikutnya.
               </p>
             </div>
 

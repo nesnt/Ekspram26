@@ -15,26 +15,34 @@ export const CLASS_OPTIONS = [
   "XIII KA 1", "XIII KA 2", "XIII KA 3", "XIII KA 4", "XIII KA 5", "XIII KA 6"
 ];
 
+export const SANGGA_OPTIONS = [
+  "Penegas",
+  "Pendobrak",
+  "Perintis",
+  "Pencoba",
+  "Pelaksana",
+];
+
 export const DEFAULT_SISWA: Student[] = [
-  { id: "b1", name: "Andi Pratama", regu: "Regu Garuda", type: "SISWA", kelas: "X RPL 1" },
-  { id: "b2", name: "Budi Santoso", regu: "Regu Garuda", type: "SISWA", kelas: "X RPL 2" },
-  { id: "b3", name: "Dika Wijaya", regu: "Regu Garuda", type: "SISWA", kelas: "XI RPL 1" },
-  { id: "b4", name: "Eko Prasetyo", regu: "Regu Elang", type: "SISWA", kelas: "XI TJKT 2" },
-  { id: "b5", name: "Fahri Ramadhan", regu: "Regu Elang", type: "SISWA", kelas: "XII RPL 1" },
-  { id: "b6", name: "Guntur Wibowo", regu: "Regu Elang", type: "SISWA", kelas: "X TJKT 1" },
-  { id: "b7", name: "Hendra Lesmana", regu: "Regu Macan", type: "SISWA", kelas: "XI KA 3" },
-  { id: "b8", name: "Irfan Hakim", regu: "Regu Macan", type: "SISWA", kelas: "XII KA 5" },
+  { id: "b1", name: "Andi Pratama", regu: "Penegas", type: "SISWA", kelas: "X RPL 1" },
+  { id: "b2", name: "Budi Santoso", regu: "Penegas", type: "SISWA", kelas: "X RPL 2" },
+  { id: "b3", name: "Dika Wijaya", regu: "Pendobrak", type: "SISWA", kelas: "XI RPL 1" },
+  { id: "b4", name: "Eko Prasetyo", regu: "Pendobrak", type: "SISWA", kelas: "XI TJKT 2" },
+  { id: "b5", name: "Fahri Ramadhan", regu: "Perintis", type: "SISWA", kelas: "XII RPL 1" },
+  { id: "b6", name: "Guntur Wibowo", regu: "Perintis", type: "SISWA", kelas: "X TJKT 1" },
+  { id: "b7", name: "Hendra Lesmana", regu: "Pencoba", type: "SISWA", kelas: "XI KA 3" },
+  { id: "b8", name: "Irfan Hakim", regu: "Pelaksana", type: "SISWA", kelas: "XII KA 5" },
 ];
 
 export const DEFAULT_SISWI: Student[] = [
-  { id: "g1", name: "Anisa Rahma", regu: "Regu Melati", type: "SISWI", kelas: "X RPL 1" },
-  { id: "g2", name: "Bella Safira", regu: "Regu Melati", type: "SISWI", kelas: "X RPL 2" },
-  { id: "g3", name: "Citra Lestari", regu: "Regu Melati", type: "SISWI", kelas: "XI RPL 1" },
-  { id: "g4", name: "Dewi Sartika", regu: "Regu Sakura", type: "SISWI", kelas: "XI TJKT 1" },
-  { id: "g5", name: "Elia Purwanti", regu: "Regu Sakura", type: "SISWI", kelas: "XII RPL 2" },
-  { id: "g6", name: "Fitriani S.", regu: "Regu Sakura", type: "SISWI", kelas: "X TJKT 2" },
-  { id: "g7", name: "Gita Lestari", regu: "Regu Mawar", type: "SISWI", kelas: "XI KA 2" },
-  { id: "g8", name: "Hesti Amelia", regu: "Regu Mawar", type: "SISWI", kelas: "XII KA 6" },
+  { id: "g1", name: "Anisa Rahma", regu: "Penegas", type: "SISWI", kelas: "X RPL 1" },
+  { id: "g2", name: "Bella Safira", regu: "Penegas", type: "SISWI", kelas: "X RPL 2" },
+  { id: "g3", name: "Citra Lestari", regu: "Pendobrak", type: "SISWI", kelas: "XI RPL 1" },
+  { id: "g4", name: "Dewi Sartika", regu: "Pendobrak", type: "SISWI", kelas: "XI TJKT 1" },
+  { id: "g5", name: "Elia Purwanti", regu: "Perintis", type: "SISWI", kelas: "XII RPL 2" },
+  { id: "g6", name: "Fitriani S.", regu: "Perintis", type: "SISWI", kelas: "X TJKT 2" },
+  { id: "g7", name: "Gita Lestari", regu: "Pencoba", type: "SISWI", kelas: "XI KA 2" },
+  { id: "g8", name: "Hesti Amelia", regu: "Pelaksana", type: "SISWI", kelas: "XII KA 6" },
 ];
 
 export const PRESET_MATERIALS = [
@@ -54,7 +62,7 @@ export const DEFAULT_ACTIVITIES: Activity[] = [
     waktuMulai: "14:00",
     waktuSelesai: "16:30",
     materi: "Sandi Morse & Semaphore",
-    keterangan: "Latihan mengirim sandi antarlapangan menggunakan bendera Semaphore dan isyarat peluit Morse. Semua regu aktif berpartisipasi.",
+    keterangan: "Latihan mengirim sandi antarlapangan menggunakan bendera Semaphore dan isyarat peluit Morse. Semua sangga aktif berpartisipasi.",
     absensiSiswa: { b1: true, b2: true, b3: true, b4: true, b5: false, b6: true, b7: true, b8: true },
     absensiSiswi: { g1: true, g2: true, g3: true, g4: true, g5: true, g6: false, g7: true, g8: false },
   },
