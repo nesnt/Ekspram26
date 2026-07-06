@@ -79,50 +79,22 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Listen and seed students (anggota)
+  // Listen students (anggota)
   useEffect(() => {
     const q = query(collection(db, "anggota"), orderBy("nama", "asc"));
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty) {
-        const isSeeded = localStorage.getItem("sipra_seeded");
-        if (!isSeeded) {
-          console.log("Anggota empty, seeding...");
-          try {
-            const batch = writeBatch(db);
-            const initial = [...DEFAULT_SISWA, ...DEFAULT_SISWI];
-            initial.forEach(s => {
-              batch.set(doc(db, "anggota", s.id), {
-                nama: s.name,
-                regu: s.regu,
-                tipe: s.type,
-                kelas: s.kelas,
-                status_aktif: true,
-                created_at: serverTimestamp()
-              });
-            });
-            await batch.commit();
-            localStorage.setItem("sipra_seeded", "true");
-          } catch (e) {
-            console.error("Gagal seeding anggota:", e);
-          }
-        } else {
-          setStudents([]);
-        }
-      } else {
-        const list: Student[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          list.push({
-            id: doc.id,
-            name: data.nama,
-            regu: data.regu,
-            type: data.tipe,
-            kelas: data.kelas || "X RPL 1",
-          });
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: Student[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        list.push({
+          id: doc.id,
+          name: data.nama,
+          regu: data.regu,
+          type: data.tipe,
+          kelas: data.kelas || "X RPL 1",
         });
-        setStudents(list);
-        localStorage.setItem("sipra_seeded", "true");
-      }
+      });
+      setStudents(list);
     });
     return () => unsubscribe();
   }, []);
@@ -131,76 +103,20 @@ export default function App() {
   const siswaList = students.filter(s => s.type === "SISWA");
   const siswiList = students.filter(s => s.type === "SISWI");
 
-  // Listen and seed kegiatan
+  // Listen kegiatan
   useEffect(() => {
-    if (students.length === 0) return;
+    if (students.length === 0) {
+      setDbActivities([]);
+      return;
+    }
 
     const q = query(collection(db, "kegiatan"), orderBy("tanggal", "desc"));
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty) {
-        const isSeeded = localStorage.getItem("sipra_activities_seeded");
-        if (!isSeeded) {
-          console.log("Kegiatan empty, seeding activities...");
-          try {
-            const batch = writeBatch(db);
-            DEFAULT_ACTIVITIES.forEach(act => {
-              const kegiatanDocRef = doc(db, "kegiatan", act.id);
-              batch.set(kegiatanDocRef, {
-                id: act.id,
-                judul: act.materi,
-                tanggal: act.tanggal,
-                waktuMulai: act.waktuMulai,
-                waktuSelesai: act.waktuSelesai,
-                catatan: act.keterangan,
-                gdrive_photo_id: act.foto || "",
-                dibuat_oleh: "system",
-                created_at: serverTimestamp()
-              });
-
-              // Boys absensi
-              Object.entries(act.absensiSiswa).forEach(([stdId, isPresent]) => {
-                const absDocId = `${act.id}_${stdId}`;
-                const std = students.find(s => s.id === stdId);
-                batch.set(doc(db, "absensi", absDocId), {
-                  id: absDocId,
-                  kegiatan_id: act.id,
-                  anggota_id: stdId,
-                  nama_anggota: std ? std.name : "Anggota",
-                  status: isPresent ? "HADIR" : "ALFA",
-                  updated_at: serverTimestamp()
-                });
-              });
-
-              // Girls absensi
-              Object.entries(act.absensiSiswi).forEach(([stdId, isPresent]) => {
-                const absDocId = `${act.id}_${stdId}`;
-                const std = students.find(s => s.id === stdId);
-                batch.set(doc(db, "absensi", absDocId), {
-                  id: absDocId,
-                  kegiatan_id: act.id,
-                  anggota_id: stdId,
-                  nama_anggota: std ? std.name : "Anggota",
-                  status: isPresent ? "HADIR" : "ALFA",
-                  updated_at: serverTimestamp()
-                });
-              });
-            });
-            await batch.commit();
-            localStorage.setItem("sipra_activities_seeded", "true");
-          } catch (e) {
-            console.error("Gagal seeding kegiatan:", e);
-          }
-        } else {
-          setDbActivities([]);
-        }
-      } else {
-        const list: any[] = [];
-        snapshot.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() });
-        });
-        setDbActivities(list);
-        localStorage.setItem("sipra_activities_seeded", "true");
-      }
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setDbActivities(list);
     });
     return () => unsubscribe();
   }, [students]);
