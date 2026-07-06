@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { Activity, Student } from "../types";
+import { getAccessToken } from "../gdrive";
 
 // Indonesian Month Names
 const indonesianMonths = [
@@ -120,6 +121,133 @@ function findRowByText(xmlDoc: Document, text: string): Element | null {
     }
   }
   return null;
+}
+
+/**
+ * Fetch image from Google Drive as ArrayBuffer using OAuth token.
+ * Returns null if token unavailable or fetch fails.
+ */
+async function fetchDriveImageAsBuffer(fileId: string): Promise<{ buffer: ArrayBuffer; mimeType: string } | null> {
+  if (!fileId || fileId.startsWith("data:") || fileId.startsWith("http")) return null;
+
+  const token = getAccessToken();
+  if (!token) return null;
+
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!response.ok) return null;
+    const mimeType = response.headers.get("content-type") || "image/jpeg";
+    const buffer = await response.arrayBuffer();
+    return { buffer, mimeType };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build a <w:drawing> XML string that references an embedded image by relationship ID.
+ * cx/cy are in EMUs (English Metric Units). 1cm ≈ 360000 EMU.
+ */
+function buildDrawingXml(rId: string, cx = 5400000, cy = 3600000): string {
+  return `<w:drawing>
+    <wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+      <wp:extent cx="${cx}" cy="${cy}"/>
+      <wp:effectExtent l="0" t="0" r="0" b="0"/>
+      <wp:docPr id="1" name="Foto Kegiatan"/>
+      <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+          <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+            <pic:nvPicPr>
+              <pic:cNvPr id="0" name="Foto"/>
+              <pic:cNvPicPr/>
+            </pic:nvPicPr>
+            <pic:blipFill>
+              <a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+              <a:stretch><a:fillRect/></a:stretch>
+            </pic:blipFill>
+            <pic:spPr>
+              <a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>
+              <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+            </pic:spPr>
+          </pic:pic>
+        </a:graphicData>
+      </a:graphic>
+    </wp:inline>
+  </w:drawing>`;
+}
+
+/**
+ * Find a paragraph containing specific text and replace its content with a drawing XML node.
+ */
+function replaceParagraphWithImage(xmlDoc: Document, placeholder: string, drawingXml: string): boolean {
+  const paragraphs = xmlDoc.getElementsByTagName("w:p");
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = paragraphs[i];
+    if (p.textContent && p.textContent.includes(placeholder)) {
+      // Clear all runs in this paragraph
+      const runs = p.getElementsByTagName("w:r");
+      while (runs.length > 0) {
+        runs[0].parentNode?.removeChild(runs[0]);
+      }
+      // Parse the drawing XML and append
+      const parser = new DOMParser();
+      const drawingDoc = parser.parseFromString(`<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${drawingXml}</root>`, "application/xml");
+      const drawingNode = drawingDoc.documentElement.firstChild;
+      if (drawingNode) {
+        const run = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:r");
+        const imported = xmlDoc.importNode(drawingNode, true);
+        run.appendChild(imported);
+        p.appendChild(run);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Read existing relationships from word/_rels/document.xml.rels and return next available rId number.
+ */
+async function getNextRId(zip: JSZip): Promise<number> {
+  const relsPath = "word/_rels/document.xml.rels";
+  const relsText = await zip.file(relsPath)?.async("text") || "";
+  const matches = relsText.match(/Id="rId(\d+)"/g) || [];
+  let maxId = 0;
+  matches.forEach(m => {
+    const num = parseInt(m.replace(/[^0-9]/g, ""), 10);
+    if (num > maxId) maxId = num;
+  });
+  return maxId + 1;
+}
+
+/**
+ * Add image to ZIP and register relationship. Returns the rId string.
+ */
+async function addImageToZip(
+  zip: JSZip,
+  imageBuffer: ArrayBuffer,
+  mimeType: string,
+  imageIndex: number,
+  startRId: number
+): Promise<string> {
+  const ext = mimeType.includes("png") ? "png" : mimeType.includes("gif") ? "gif" : "jpg";
+  const imageName = `foto_kegiatan_${imageIndex}.${ext}`;
+  const imagePath = `word/media/${imageName}`;
+
+  zip.file(imagePath, imageBuffer);
+
+  const rId = `rId${startRId}`;
+  const relsPath = "word/_rels/document.xml.rels";
+  let relsText = await zip.file(relsPath)?.async("text") || `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+
+  const newRel = `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${imageName}"/>`;
+  relsText = relsText.replace("</Relationships>", `${newRel}</Relationships>`);
+  zip.file(relsPath, relsText);
+
+  return rId;
 }
 
 interface ExportReportParams {
@@ -321,14 +449,51 @@ export async function exportReportToDocx({
     "Maya Kusmayanti M,": kamabigusName, // Split handle part 1
     "P.d": "",                          // Split handle part 2 (cleared since part 1 has the full name)
     "Vicky Umbara, S.Pd": pembinaName,
-
-    // Documentation placeholder cleanups (as requested, photos are omitted for now)
-    "{gambar kegiatan 1}": "",
-    "{gambar kegiatan 2}": "",
-    "{gambar kegiatan 3}": "",
-    "{gambar kegiatan 4}": "",
-    "{jumlah dokumentasi menyesuaikan kegiatan yang ada}": ""
   };
+
+  // ==========================================
+  // C. EMBED PHOTOS FROM GOOGLE DRIVE
+  // ==========================================
+  let nextRId = await getNextRId(zip);
+
+  for (let i = 0; i < Math.min(filteredActivities.length, 4); i++) {
+    const act = filteredActivities[i];
+    const placeholder = `{gambar kegiatan ${i + 1}}`;
+
+    if (act.foto && !act.foto.startsWith("data:") && !act.foto.startsWith("http")) {
+      // Google Drive file ID — fetch via API
+      const result = await fetchDriveImageAsBuffer(act.foto);
+      if (result) {
+        const rId = await addImageToZip(zip, result.buffer, result.mimeType, i + 1, nextRId);
+        nextRId++;
+        const drawingXml = buildDrawingXml(rId);
+        replaceParagraphWithImage(xmlDoc, placeholder, drawingXml);
+      } else {
+        // Fallback: replace with caption text if fetch failed
+        globalReplacements[placeholder] = `[Foto kegiatan ${i + 1} — tidak dapat dimuat]`;
+      }
+    } else if (act.foto && act.foto.startsWith("data:")) {
+      // Base64 data URL — extract binary directly
+      const [header, base64Data] = act.foto.split(",");
+      const mimeType = header.match(/data:([^;]+)/)?.[1] || "image/jpeg";
+      const binary = atob(base64Data);
+      const buffer = new ArrayBuffer(binary.length);
+      const view = new Uint8Array(buffer);
+      for (let j = 0; j < binary.length; j++) view[j] = binary.charCodeAt(j);
+      const rId = await addImageToZip(zip, buffer, mimeType, i + 1, nextRId);
+      nextRId++;
+      const drawingXml = buildDrawingXml(rId);
+      replaceParagraphWithImage(xmlDoc, placeholder, drawingXml);
+    } else {
+      globalReplacements[placeholder] = "";
+    }
+  }
+
+  // Clear remaining unused photo placeholders
+  for (let i = filteredActivities.length; i < 4; i++) {
+    globalReplacements[`{gambar kegiatan ${i + 1}}`] = "";
+  }
+  globalReplacements["{jumlah dokumentasi menyesuaikan kegiatan yang ada}"] = "";
 
   // Add documentation date placeholders
   for (let i = 0; i < 4; i++) {
