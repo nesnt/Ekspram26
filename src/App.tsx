@@ -806,7 +806,7 @@ export default function App() {
               {/* Inner screen area */}
               <main className="flex-1 overflow-y-auto p-6 relative">
                 <div className={`absolute inset-0 pointer-events-none ${darkMode ? "scout-pattern-dark" : "scout-pattern"}`} />
-                <div className="relative z-10 max-w-6xl mx-auto w-full">
+                <div className="relative z-10 w-full">
                   {currentScreen === "DASHBOARD" && (
                     <DashboardScreen
                       activities={activities}

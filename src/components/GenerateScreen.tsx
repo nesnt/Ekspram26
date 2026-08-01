@@ -61,10 +61,14 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
   siswaList,
   siswiList,
 }) => {
-  const [selectedBulan, setSelectedBulan] = useState("05"); // default May as mock activities are in May
-  const [selectedTahun, setSelectedTahun] = useState("2026");
-  const [pembinaName, setPembinaName] = useState("Kak Heru Wijaya, S.Pd., L.T.");
-  const [kamabigusName, setKamabigusName] = useState("Drs. H. Mulyadi, M.Pd.");
+  const currentDate = new Date();
+  const currentMonthStr = String(currentDate.getMonth() + 1).padStart(2, "0");
+  const currentYearStr = String(currentDate.getFullYear());
+
+  const [selectedBulan, setSelectedBulan] = useState(currentMonthStr);
+  const [selectedTahun, setSelectedTahun] = useState(currentYearStr);
+  const [pembinaName, setPembinaName] = useState("Vicky Umbara, S.Pd");
+  const [kamabigusName, setKamabigusName] = useState("Maya Kusmayanti M, P.d");
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUploadingGDocs, setIsUploadingGDocs] = useState(false);
@@ -277,7 +281,7 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
         {/* Input Officers Signature config */}
         <div className="space-y-2 pt-1 border-t border-gray-50 dark:border-emerald-950/30">
           <div>
-            <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Nama Pembina Pramuka (Tanda Tangan)</label>
+            <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Nama Pembina / Pelatih (Tanda Tangan)</label>
             <input
               type="text"
               value={pembinaName}
@@ -286,7 +290,7 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Nama Kamabigus / Kepsek</label>
+            <label className="text-[10px] font-bold text-gray-400 block mb-0.5">Nama Wakasek Bid. Kesiswaan</label>
             <input
               type="text"
               value={kamabigusName}
@@ -308,19 +312,25 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
       </div>
 
       {/* Formal Kop Lapor */}
-      <div className="border-b-2 border-slate-950 pb-2.5 text-center relative z-10">
-        <div className="flex justify-center mb-1">
-          <TunasKelapaIcon className="w-7 h-7 text-emerald-900" />
+      <div className="border-b-2 border-slate-950 pb-2.5 mb-3 relative z-10">
+        <div className="flex justify-between items-center px-4">
+          <img src="/logo1.jpg" alt="Logo Kiri" className="w-12 h-12 object-contain mix-blend-multiply" />
+          <div className="text-center flex-1 px-2">
+            <h4 className="font-serif font-extrabold text-[12px] uppercase leading-tight tracking-tight text-slate-950">
+              LAPORAN BULANAN EKSTRAKURIKULER<br/>
+              PRAMUKA SMKN 13 KOTA BANDUNG
+            </h4>
+            <p className="text-[10px] font-bold font-serif uppercase tracking-wide mt-1 leading-none text-emerald-900">
+              BULAN {namaBulanMap[selectedBulan].toUpperCase()} TAHUN {selectedTahun}
+            </p>
+            <p className="text-[8px] font-sans text-slate-700 mt-1.5 leading-tight">
+              <span className="font-bold text-slate-900 uppercase text-[9px]">SMK NEGERI 13 KOTA BANDUNG</span><br/>
+              Jl. Soekarno-Hatta Km. 10 ; Telp/Fax. 022-7318960<br/>
+              Tahun Ajaran 2025 – 2026
+            </p>
+          </div>
+          <img src="/logo2.jpg" alt="Logo Kanan" className="w-12 h-12 object-contain mix-blend-multiply" />
         </div>
-        <h4 className="font-serif font-extrabold text-[12px] uppercase leading-none tracking-tight">
-          Gerakan Pramuka Indonesia
-        </h4>
-        <p className="text-[10px] font-bold font-serif uppercase tracking-wide mt-1 leading-none">
-          Gugus Depan 11.025 - 11.026 - Pangkalan SMPN Merdeka
-        </p>
-        <p className="text-[8px] font-mono text-gray-500 uppercase mt-1 leading-none">
-          REKAPITULASI LAPORAN BULANAN • PERIODE {namaBulanMap[selectedBulan].toUpperCase()} {selectedTahun}
-        </p>
       </div>
 
       {/* Mini Report Document Body */}
@@ -476,17 +486,21 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
           </div>
         )}
 
-        {/* Abstract signatures at footer */}
-        <div className="grid grid-cols-2 text-center text-[8px] font-sans pt-3 border-t border-slate-200 gap-4 mt-2">
-          <div>
-            <p>Mengetahui,</p>
-            <p className="font-bold underline mt-8 truncate">{kamabigusName}</p>
-            <p className="text-gray-400">Kamabigus / Kepala Sekolah</p>
+        {/* Signatures Preview */}
+        <div className="flex justify-between pt-8 px-4 relative">
+          <div className="text-center w-1/2">
+            <p className="text-[8px] text-slate-500 mb-6">Mengetahui,</p>
+            <div className="border-b border-slate-400 inline-block px-4 pb-0.5 mb-0.5">
+              <p className="font-bold text-[9px] text-slate-900">{kamabigusName}</p>
+            </div>
+            <p className="text-[7px] text-slate-600 font-bold">Wakasek Bid. Kesiswaan</p>
           </div>
-          <div>
-            <p>Menyetujui,</p>
-            <p className="font-bold underline mt-8 truncate">{pembinaName}</p>
-            <p className="text-gray-400">Pembina Gugusdepan</p>
+          <div className="text-center w-1/2">
+            <p className="text-[8px] text-slate-500 mb-6">Menyetujui,</p>
+            <div className="border-b border-slate-400 inline-block px-4 pb-0.5 mb-0.5">
+              <p className="font-bold text-[9px] text-slate-900">{pembinaName}</p>
+            </div>
+            <p className="text-[7px] text-slate-600 font-bold">Pembina / Pelatih</p>
           </div>
         </div>
       </div>

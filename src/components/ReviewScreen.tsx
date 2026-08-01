@@ -36,17 +36,34 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   onNavigateToGenerate,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterBulan, setFilterBulan] = useState("ALL");
+  const [filterTahun, setFilterTahun] = useState("ALL");
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
+
+  const namaBulanMap: { [key: string]: string } = {
+    "01": "Januari", "02": "Februari", "03": "Maret", "04": "April",
+    "05": "Mei", "06": "Juni", "07": "Juli", "08": "Agustus",
+    "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+  };
 
   // Filter activities
   const filteredActivities = useMemo(() => {
     return activities.filter((act) => {
-      return act.materi.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const parts = act.tanggal.split("-"); // YYYY-MM-DD
+      const actYear = parts[0];
+      const actMonth = parts[1];
+
+      const matchBulan = filterBulan === "ALL" || actMonth === filterBulan;
+      const matchTahun = filterTahun === "ALL" || actYear === filterTahun;
+      
+      const matchSearch = act.materi.toLowerCase().includes(searchQuery.toLowerCase()) || 
              act.keterangan.toLowerCase().includes(searchQuery.toLowerCase()) ||
              act.tanggal.includes(searchQuery);
+             
+      return matchBulan && matchTahun && matchSearch;
     }).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-  }, [activities, searchQuery]);
+  }, [activities, searchQuery, filterBulan, filterTahun]);
 
   // Helper to format date index to Indonesian words
   const formatIndoDate = (dateStr: string) => {
@@ -96,15 +113,41 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
       </div>
 
       {/* Filter / Search Toolbar */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-3 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Cari materi, keterangan, atau tanggal..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white dark:bg-[#0d2318] border border-gray-200 dark:border-emerald-900 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
-        />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-3 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Cari materi, keterangan, atau tanggal..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white dark:bg-[#0d2318] border border-gray-200 dark:border-emerald-900 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
+          />
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={filterBulan}
+            onChange={(e) => setFilterBulan(e.target.value)}
+            className="bg-white dark:bg-[#0d2318] border border-gray-200 dark:border-emerald-900 rounded-xl px-3 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none font-bold"
+          >
+            <option value="ALL">Semua Bulan</option>
+            {Object.entries(namaBulanMap).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
+          </select>
+          <select
+            value={filterTahun}
+            onChange={(e) => setFilterTahun(e.target.value)}
+            className="bg-white dark:bg-[#0d2318] border border-gray-200 dark:border-emerald-900 rounded-xl px-3 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none font-bold"
+          >
+            <option value="ALL">Semua Tahun</option>
+            {/* Generate options from 2024 to current year + 2 */}
+            {Array.from({ length: 5 }).map((_, i) => {
+              const year = 2024 + i;
+              return <option key={year} value={String(year)}>{year}</option>;
+            })}
+          </select>
+        </div>
       </div>
 
       {/* Activity List table substitute (Bento style responsive list) */}
