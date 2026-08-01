@@ -55,6 +55,75 @@ function formatHariTanggalBulanTahun(dateStr: string): string {
   return `${dayName}, ${d} ${monthName} ${y}`;
 }
 
+function replaceParagraphWithTable(p: Element, leftText1: string, rightText1: string, leftText2: string, rightText2: string, leftText3: string, rightText3: string) {
+  const doc = p.ownerDocument;
+  const tblXml = `
+    <w:tbl xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+      <w:tblPr>
+        <w:tblW w:w="9000" w:type="dxa"/>
+        <w:jc w:val="center"/>
+        <w:tblBorders>
+          <w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+          <w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+          <w:bottom w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+          <w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+          <w:insideH w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+          <w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+        </w:tblBorders>
+        <w:tblCellMar>
+          <w:top w:w="0" w:type="dxa"/>
+          <w:left w:w="108" w:type="dxa"/>
+          <w:bottom w:w="0" w:type="dxa"/>
+          <w:right w:w="108" w:type="dxa"/>
+        </w:tblCellMar>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="4500"/>
+        <w:gridCol w:w="4500"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
+          <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${leftText1}</w:t></w:r></w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
+          <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${rightText1}</w:t></w:r></w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
+          <w:p><w:pPr><w:spacing w:before="1000"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${leftText2}</w:t></w:r></w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
+          <w:p><w:pPr><w:spacing w:before="1000"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${rightText2}</w:t></w:r></w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
+          <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${leftText3}</w:t></w:r></w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
+          <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${rightText3}</w:t></w:r></w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+  `;
+  const parser = new DOMParser();
+  const tblDoc = parser.parseFromString(tblXml, "application/xml");
+  const newTbl = tblDoc.documentElement;
+  
+  if (p.parentNode && newTbl) {
+    const importedNode = doc.importNode(newTbl, true);
+    p.parentNode.insertBefore(importedNode, p);
+    p.parentNode.removeChild(p);
+  }
+}
+
 /**
  * Helper to replace all occurrences of placeholders inside a single DOM Element (like w:p or w:tc).
  * Merges split text runs <w:t> in Word XML so that placeholders can be cleanly replaced.
@@ -347,10 +416,22 @@ export async function exportReportToDocx({
     }
   }
 
-  // Remove the "{dan seterusnya sesuai jumlah data}" row
-  const danSeterusnyaRow = findRowByText(xmlDoc, "{dan seterusnya");
-  if (danSeterusnyaRow) {
-    danSeterusnyaRow.parentNode?.removeChild(danSeterusnyaRow);
+  // Remove all "{dan seterusnya sesuai jumlah data}" rows across all tables
+  const allTrsForCleanup = xmlDoc.getElementsByTagName("w:tr");
+  for (let i = allTrsForCleanup.length - 1; i >= 0; i--) {
+    const tr = allTrsForCleanup[i];
+    if (tr.textContent && tr.textContent.includes("{dan seterusnya")) {
+      tr.parentNode?.removeChild(tr);
+    }
+  }
+  
+  // Also search for it in paragraphs and remove the paragraph if found
+  const allParagraphs = xmlDoc.getElementsByTagName("w:p");
+  for (let i = allParagraphs.length - 1; i >= 0; i--) {
+    const p = allParagraphs[i];
+    if (p.textContent && p.textContent.includes("{dan seterusnya")) {
+      p.parentNode?.removeChild(p);
+    }
   }
 
   if (onProgress) onProgress(60);
@@ -423,6 +504,94 @@ export async function exportReportToDocx({
     }
   }
 
+  // Helper to remove a table and its title paragraph if no students
+  const removeEmptyAttendanceTable = (type: "PUTRA" | "PUTRI") => {
+    const allDocParagraphs = xmlDoc.getElementsByTagName("w:p");
+    for (let i = 0; i < allDocParagraphs.length; i++) {
+      const p = allDocParagraphs[i];
+      if (p.textContent && p.textContent.trim() === type) {
+        const prev = p.previousSibling;
+        if (prev && prev.nodeName === "w:p" && prev.textContent?.trim() === "DAFTAR HADIR") {
+          // Found it! Delete 'DAFTAR HADIR'
+          prev.parentNode?.removeChild(prev);
+          // Find the next table
+          let next = p.nextSibling;
+          while (next) {
+            if (next.nodeName === "w:tbl") {
+              next.parentNode?.removeChild(next);
+              break;
+            }
+            next = next.nextSibling;
+          }
+          p.parentNode?.removeChild(p); // Delete 'PUTRA'/'PUTRI'
+          break;
+        }
+      }
+    }
+  };
+
+  if (siswaList.length === 0) {
+    removeEmptyAttendanceTable("PUTRA");
+  }
+  if (siswiList.length === 0) {
+    removeEmptyAttendanceTable("PUTRI");
+  }
+
+  // Remove all explicit page breaks to prevent blank pages
+  const pageBreaks = xmlDoc.getElementsByTagName("w:br");
+  for (let i = pageBreaks.length - 1; i >= 0; i--) {
+    if (pageBreaks[i].getAttribute("w:type") === "page") {
+      pageBreaks[i].parentNode?.removeChild(pageBreaks[i]);
+    }
+  }
+
+  // Also remove all soft page breaks, as Google Docs misinterprets them as hard page breaks!
+  const softBreaks = xmlDoc.getElementsByTagName("w:lastRenderedPageBreak");
+  for (let i = softBreaks.length - 1; i >= 0; i--) {
+    softBreaks[i].parentNode?.removeChild(softBreaks[i]);
+  }
+
+  // Safely force Putra, Putri, and Dokumentasi to start on new pages using pageBreakBefore
+  const pNodes = xmlDoc.getElementsByTagName("w:p");
+  const docParagraphsForBreaks: Element[] = [];
+  for (let i = 0; i < pNodes.length; i++) {
+    docParagraphsForBreaks.push(pNodes[i]);
+  }
+  
+  // Iterate backwards safely on the static array
+  for (let i = docParagraphsForBreaks.length - 1; i >= 0; i--) {
+    const p = docParagraphsForBreaks[i];
+    if (!p.parentNode) continue; // Skip if this node was already deleted
+    
+    const text = p.textContent?.trim();
+    if (text === "PUTRA" || text === "PUTRI" || text === "DOKUMENTASI KEGIATAN") {
+      const titleP = p.previousSibling;
+      if (titleP && titleP.nodeName === "w:p") {
+        let pPr = (titleP as Element).getElementsByTagName("w:pPr")[0];
+        if (!pPr) {
+          pPr = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:pPr");
+          titleP.insertBefore(pPr, titleP.firstChild);
+        }
+        let pbb = pPr.getElementsByTagName("w:pageBreakBefore")[0];
+        if (!pbb) {
+          pbb = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:pageBreakBefore");
+          pPr.appendChild(pbb);
+        }
+        
+        // Clean up empty paragraphs BEFORE titleP to prevent them from causing blank pages
+        let prev = titleP.previousSibling;
+        while (prev && prev.nodeName === "w:p" && (!prev.textContent || prev.textContent.trim() === "")) {
+          const toDelete = prev;
+          prev = prev.previousSibling;
+          // Only delete if it doesn't contain images/drawings
+          if (toDelete.getElementsByTagName("w:drawing").length === 0 && toDelete.getElementsByTagName("v:shape").length === 0) {
+            toDelete.parentNode?.removeChild(toDelete);
+          }
+        }
+      }
+    }
+  }
+
   if (onProgress) onProgress(80);
 
   // ==========================================
@@ -441,74 +610,309 @@ export async function exportReportToDocx({
     "{tanggal kegiatan 4 [tanggal/bulan/tahun]}": activitiesForAttendance[3] ? formatDDMMYY(activitiesForAttendance[3].tanggal) : "",
 
     // Putri header dates (dd/mm/yy)
-    "{tanggal kegiatan 1 [tanggal/bulan/tahun]}": activitiesForAttendance[0] ? formatDDMMYY(activitiesForAttendance[0].tanggal) : "",
-    
-    // Custom Dynamic Signatures (Replacing static names)
-    "Maya Kusmayanti M, P.d": kamabigusName,
-    "Maya Kusmayanti M, P.d.": kamabigusName,
-    "Maya Kusmayanti M,": kamabigusName, // Split handle part 1
-    "P.d": "",                          // Split handle part 2 (cleared since part 1 has the full name)
-    "Vicky Umbara, S.Pd": pembinaName,
+    "{tanggal kegiatan 1 [tanggal/bulan/tahun]}": activitiesForAttendance[0] ? formatDDMMYY(activitiesForAttendance[0].tanggal) : ""
   };
 
   // ==========================================
-  // C. EMBED PHOTOS FROM GOOGLE DRIVE
+  // B. REBUILD SIGNATURES WITH TABLE
+  // ==========================================
+  const allDocParagraphs = xmlDoc.getElementsByTagName("w:p");
+  let sigTitleP = null;
+  let sigNameP = null;
+  let sigNipP = null;
+  
+  for (let i = 0; i < allDocParagraphs.length; i++) {
+    const p = allDocParagraphs[i];
+    const text = p.textContent || "";
+    if (text.includes("Wakasek Bid. Kesiswaan") && text.includes("Pelatih Pramuka")) {
+      sigTitleP = p;
+    } else if (text.includes("Maya Kusmayanti") && text.includes("Vicky Umbara")) {
+      sigNameP = p;
+    } else if (text.includes("NIP.") && text.includes("NTA.")) {
+      sigNipP = p;
+    }
+  }
+
+  if (sigTitleP) {
+     let nipStr = "NIP. 198105072010012015";
+     let ntaStr = "NTA. 09 19 25 830606 00001";
+     if (sigNipP) {
+        const text = sigNipP.textContent || "";
+        const nipMatch = text.match(/NIP\.\s*\d+/);
+        const ntaMatch = text.match(/NTA\.\s*[\d\s]+/);
+        if (nipMatch) nipStr = nipMatch[0];
+        if (ntaMatch) ntaStr = ntaMatch[0];
+     }
+     
+     replaceParagraphWithTable(sigTitleP, "Wakasek Bid. Kesiswaan", "Pelatih Pramuka", kamabigusName, pembinaName, nipStr, ntaStr);
+     if (sigNameP && sigNameP.parentNode) sigNameP.parentNode.removeChild(sigNameP);
+     if (sigNipP && sigNipP.parentNode) sigNipP.parentNode.removeChild(sigNipP);
+  }
+
+  // ==========================================
+  // C. FIX TABLE COLUMN WIDTHS
+  // ==========================================
+  // The template has distorted column widths for the Putra and Putri tables due to the long placeholders.
+  // We will force them back to the correct widths from example.docx.
+  const allTables = xmlDoc.getElementsByTagName("w:tbl");
+  if (allTables.length >= 3) {
+    const applyWidthsToTable = (tbl: Element, correctWidths: string[]) => {
+      const doc = tbl.ownerDocument;
+      
+      // Force Fixed Layout to prevent AutoFit from breaking our widths
+      let tblPr = tbl.getElementsByTagName("w:tblPr")[0];
+      if (!tblPr) {
+        tblPr = doc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tblPr");
+        tbl.insertBefore(tblPr, tbl.firstChild);
+      }
+      let tblLayout = tblPr.getElementsByTagName("w:tblLayout")[0];
+      if (!tblLayout) {
+        tblLayout = doc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tblLayout");
+        tblPr.appendChild(tblLayout);
+      }
+      tblLayout.setAttribute("w:type", "fixed");
+
+      // Fix w:tblGrid
+      const grid = tbl.getElementsByTagName("w:tblGrid")[0];
+      if (grid) {
+        const cols = grid.getElementsByTagName("w:gridCol");
+        if (cols.length === correctWidths.length) {
+          for (let i = 0; i < correctWidths.length; i++) {
+            cols[i].setAttribute("w:w", correctWidths[i]);
+          }
+        }
+      }
+      
+      // Fix w:tcW for all cells
+      const rows = tbl.getElementsByTagName("w:tr");
+      for (let r = 0; r < rows.length; r++) {
+        const cells = rows[r].getElementsByTagName("w:tc");
+        if (cells.length === correctWidths.length) {
+          for (let c = 0; c < correctWidths.length; c++) {
+            const tcPr = cells[c].getElementsByTagName("w:tcPr")[0];
+            if (tcPr) {
+              const tcW = tcPr.getElementsByTagName("w:tcW")[0];
+              if (tcW) {
+                tcW.setAttribute("w:w", correctWidths[c]);
+                tcW.setAttribute("w:type", "dxa");
+              }
+            }
+          }
+        } else if (cells.length === 5 && r === 0 && correctWidths.length === 6) {
+           const headerWidths = ["3980", "1120", "1180", "2300", "1180"];
+           for (let c = 0; c < 5; c++) {
+             const tcPr = cells[c].getElementsByTagName("w:tcPr")[0];
+             if (tcPr) {
+               const tcW = tcPr.getElementsByTagName("w:tcW")[0];
+               if (tcW) {
+                 tcW.setAttribute("w:w", headerWidths[c]);
+                 tcW.setAttribute("w:type", "dxa");
+               }
+             }
+           }
+        }
+      }
+    };
+
+    for (let i = 0; i < allTables.length; i++) {
+      const tbl = allTables[i];
+      const text = tbl.textContent || "";
+      
+      // Identify Pelatih table by its unique headers
+      if (text.includes("WAKTU") && text.includes("KETERANGAN MATERI")) {
+        applyWidthsToTable(tbl, ["560", "1800", "1380", "2840", "1840"]);
+      }
+      // Identify Putra and Putri attendance tables by their headers
+      else if (text.includes("Nama") && text.includes("Kelas") && text.includes("Tanggal")) {
+        applyWidthsToTable(tbl, ["3980", "1120", "1180", "1160", "1140", "1180"]);
+      }
+    }
+  }
+
+  // ==========================================
+  // D. EMBED PHOTOS & DYNAMIC DOCUMENTATION BLOCKS
   // ==========================================
   let nextRId = await getNextRId(zip);
 
-  for (let i = 0; i < Math.min(filteredActivities.length, 4); i++) {
-    const act = filteredActivities[i];
-    const placeholder = `{gambar kegiatan ${i + 1}}`;
+  const docParagraphs = xmlDoc.getElementsByTagName("w:p");
+  let dateP: Element | null = null;
+  let imageP: Element | null = null;
+  let captionP: Element | null = null;
+  let footerP: Element | null = null;
 
-    if (act.foto && !act.foto.startsWith("data:") && !act.foto.startsWith("http")) {
-      // Google Drive file ID — fetch via API
-      const result = await fetchDriveImageAsBuffer(act.foto);
-      if (result) {
-        const rId = await addImageToZip(zip, result.buffer, result.mimeType, i + 1, nextRId);
-        nextRId++;
-        const drawingXml = buildDrawingXml(rId);
-        replaceParagraphWithImage(xmlDoc, placeholder, drawingXml);
-      } else {
-        // Fallback: replace with caption text if fetch failed
-        globalReplacements[placeholder] = `[Foto kegiatan ${i + 1} — tidak dapat dimuat]`;
-      }
-    } else if (act.foto && act.foto.startsWith("data:")) {
-      // Base64 data URL — extract binary directly
-      const [header, base64Data] = act.foto.split(",");
-      const mimeType = header.match(/data:([^;]+)/)?.[1] || "image/jpeg";
-      const binary = atob(base64Data);
-      const buffer = new ArrayBuffer(binary.length);
-      const view = new Uint8Array(buffer);
-      for (let j = 0; j < binary.length; j++) view[j] = binary.charCodeAt(j);
-      const rId = await addImageToZip(zip, buffer, mimeType, i + 1, nextRId);
-      nextRId++;
-      const drawingXml = buildDrawingXml(rId);
-      replaceParagraphWithImage(xmlDoc, placeholder, drawingXml);
-    } else {
-      globalReplacements[placeholder] = "";
+  for (let i = 0; i < docParagraphs.length; i++) {
+    const text = docParagraphs[i].textContent || "";
+    if (text.includes("{tanggal kegiatan 1 dengan format")) {
+      dateP = docParagraphs[i];
+    } else if (text.includes("{gambar kegiatan 1}")) {
+      imageP = docParagraphs[i];
+    } else if (text.includes("Gambar 1.0")) {
+      captionP = docParagraphs[i];
+    } else if (text.includes("{jumlah dokumentasi menyesuaikan kegiatan yang ada}")) {
+      footerP = docParagraphs[i];
     }
   }
 
-  // Clear remaining unused photo placeholders
-  for (let i = filteredActivities.length; i < 4; i++) {
+  if (dateP && imageP && captionP) {
+    const parent = dateP.parentNode;
+    if (parent) {
+      const maxActivities = Math.min(filteredActivities.length, 4);
+      for (let i = 0; i < maxActivities; i++) {
+        const act = filteredActivities[i];
+        
+        const newDateP = dateP.cloneNode(true) as Element;
+        const newImageP = imageP.cloneNode(true) as Element;
+        const newCaptionP = captionP.cloneNode(true) as Element;
+
+        // Replace text in newDateP
+        replaceAllPlaceholdersInElement(newDateP, {
+          "{tanggal kegiatan 1 dengan format [hari, tanggal + nama bulan + tahun]}": formatHariTanggalBulanTahun(act.tanggal)
+        });
+
+        // Prepare newImageP
+        while (newImageP.firstChild) {
+          newImageP.removeChild(newImageP.firstChild);
+        }
+
+        // Prepare newCaptionP
+        while (newCaptionP.firstChild) {
+          newCaptionP.removeChild(newCaptionP.firstChild);
+        }
+
+        const fotosToProcess = [];
+        if (act.foto) fotosToProcess.push(act.foto);
+        if (act.foto2) fotosToProcess.push(act.foto2);
+
+        for (let f = 0; f < fotosToProcess.length; f++) {
+          const fotoData = fotosToProcess[f];
+          let rId: string | null = null;
+
+          if (!fotoData.startsWith("data:") && !fotoData.startsWith("http")) {
+            const result = await fetchDriveImageAsBuffer(fotoData);
+            if (result) {
+              rId = await addImageToZip(zip, result.buffer, result.mimeType, nextRId, nextRId);
+              nextRId++;
+            }
+          } else if (fotoData.startsWith("data:")) {
+            const [header, base64Data] = fotoData.split(",");
+            const mimeType = header.match(/data:([^;]+)/)?.[1] || "image/jpeg";
+            const binary = atob(base64Data);
+            const buffer = new ArrayBuffer(binary.length);
+            const view = new Uint8Array(buffer);
+            for (let j = 0; j < binary.length; j++) view[j] = binary.charCodeAt(j);
+            rId = await addImageToZip(zip, buffer, mimeType, nextRId, nextRId);
+            nextRId++;
+          }
+
+          if (rId) {
+             const scale = fotosToProcess.length > 1 ? 0.32 : 1.0; 
+             const cx = Math.floor(5400000 * scale);
+             const cy = Math.floor(3600000 * scale);
+             const drawingXml = buildDrawingXml(rId, cx, cy); 
+             
+             const parser = new DOMParser();
+             const drawingDoc = parser.parseFromString(`<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${drawingXml}</root>`, "application/xml");
+             const drawingNode = drawingDoc.documentElement.firstChild;
+             
+             if (drawingNode) {
+               const r = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:r");
+               const imported = xmlDoc.importNode(drawingNode, true);
+               r.appendChild(imported);
+               newImageP.appendChild(r);
+
+               // Add caption text for this image
+               const rCaption = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:r");
+               const rPrCaption = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:rPr");
+               const rFonts = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:rFonts");
+               rFonts.setAttribute("w:ascii", "Times New Roman");
+               rFonts.setAttribute("w:hAnsi", "Times New Roman");
+               rPrCaption.appendChild(rFonts);
+               rCaption.appendChild(rPrCaption);
+
+               const tCaption = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:t");
+               tCaption.textContent = `Gambar ${i + 1}.${f}`;
+               rCaption.appendChild(tCaption);
+               newCaptionP.appendChild(rCaption);
+
+               if (f === 0 && fotosToProcess.length > 1) {
+                  // Add Tab for Image
+                  const rTabImg = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:r");
+                  const tabImg = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tab");
+                  rTabImg.appendChild(tabImg);
+                  newImageP.appendChild(rTabImg);
+
+                  // Add Tab for Caption
+                  const rTabCap = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:r");
+                  const tabCap = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tab");
+                  rTabCap.appendChild(tabCap);
+                  newCaptionP.appendChild(rTabCap);
+               }
+             }
+          }
+        }
+        
+        // Add tab stops to the newImageP
+        const pPrImg = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:pPr");
+        const tabsImg = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tabs");
+        const tabImg = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tab");
+        tabImg.setAttribute("w:val", "center");
+        tabImg.setAttribute("w:pos", "5198");
+        tabsImg.appendChild(tabImg);
+        pPrImg.appendChild(tabsImg);
+        newImageP.insertBefore(pPrImg, newImageP.firstChild);
+
+        // Add tab stops to the newCaptionP
+        const pPrCap = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:pPr");
+        const tabsCap = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tabs");
+        const tabCap = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:tab");
+        tabCap.setAttribute("w:val", "center");
+        tabCap.setAttribute("w:pos", "5198");
+        tabsCap.appendChild(tabCap);
+        pPrCap.appendChild(tabsCap);
+        newCaptionP.insertBefore(pPrCap, newCaptionP.firstChild);
+        
+        
+        if (footerP) {
+          parent.insertBefore(newDateP, footerP);
+          parent.insertBefore(newImageP, footerP);
+          parent.insertBefore(newCaptionP, footerP);
+          
+          const emptyP = xmlDoc.createElementNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w:p");
+          parent.insertBefore(emptyP, footerP);
+        } else {
+          parent.appendChild(newDateP);
+          parent.appendChild(newImageP);
+          parent.appendChild(newCaptionP);
+        }
+      }
+
+      parent.removeChild(dateP);
+      parent.removeChild(imageP);
+      parent.removeChild(captionP);
+      if (footerP) parent.removeChild(footerP);
+    }
+  }
+
+  // Clear any left-over placeholders in globalReplacements just in case
+  for (let i = 0; i < 4; i++) {
     globalReplacements[`{gambar kegiatan ${i + 1}}`] = "";
+    globalReplacements[`{tanggal kegiatan ${i + 1} dengan format [hari, tanggal + nama bulan + tahun]}`] = "";
   }
   globalReplacements["{jumlah dokumentasi menyesuaikan kegiatan yang ada}"] = "";
-
-  // Add documentation date placeholders
-  for (let i = 0; i < 4; i++) {
-    const key = `{tanggal kegiatan ${i + 1} dengan format [hari, tanggal + nama bulan + tahun]}`;
-    if (i < filteredActivities.length) {
-      globalReplacements[key] = formatHariTanggalBulanTahun(filteredActivities[i].tanggal);
-    } else {
-      globalReplacements[key] = "";
-    }
-  }
 
   // Iterate over all paragraphs and run replacements
   const paragraphs = xmlDoc.getElementsByTagName("w:p");
   for (let i = 0; i < paragraphs.length; i++) {
-    replaceAllPlaceholdersInElement(paragraphs[i], globalReplacements);
+    const p = paragraphs[i];
+    // If the paragraph has tabs (like signatures), process run-by-run to avoid destroying tab alignment
+    if (p.getElementsByTagName("w:tab").length > 0) {
+      const runs = p.getElementsByTagName("w:r");
+      for (let j = 0; j < runs.length; j++) {
+        replaceAllPlaceholdersInElement(runs[j], globalReplacements);
+      }
+    } else {
+      replaceAllPlaceholdersInElement(p, globalReplacements);
+    }
   }
 
   if (onProgress) onProgress(90);

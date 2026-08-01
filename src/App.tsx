@@ -16,7 +16,21 @@ import { LoginScreen } from "./components/LoginScreen";
 import { AdminPanelScreen } from "./components/AdminPanelScreen";
 import { StudentDetailScreen } from "./components/StudentDetailScreen";
 import { UserManagementScreen } from "./components/UserManagementScreen";
-import { Sparkles, Calendar, Award, CheckCircle } from "lucide-react";
+import {
+  Sparkles,
+  Calendar,
+  Award,
+  CheckCircle,
+  LayoutDashboard,
+  ClipboardCheck,
+  Users,
+  Printer,
+  UserCog,
+  LogOut,
+  Moon,
+  Sun,
+  ArrowLeft
+} from "lucide-react";
 import { auth, db } from "./firebase";
 import {
   collection,
@@ -176,6 +190,7 @@ export default function App() {
         materi: act.judul,
         keterangan: act.catatan,
         foto: act.gdrive_photo_id,
+        foto2: act.gdrive_photo_id2,
         absensiSiswa,
         absensiSiswi
       };
@@ -204,7 +219,9 @@ export default function App() {
     materi: string;
     keterangan: string;
     foto?: string;
+    foto2?: string;
     rawFile?: File;
+    rawFile2?: File;
     absensiSiswa: { [studentId: string]: boolean };
     absensiSiswi: { [studentId: string]: boolean };
     isEditing: boolean;
@@ -235,7 +252,9 @@ export default function App() {
       materi: "",
       keterangan: "",
       foto: undefined,
+      foto2: undefined,
       rawFile: undefined,
+      rawFile2: undefined,
       absensiSiswa: defaultSiswaAbsen,
       absensiSiswi: defaultSiswiAbsen,
       isEditing: false,
@@ -253,7 +272,9 @@ export default function App() {
       materi: act.materi,
       keterangan: act.keterangan,
       foto: act.foto,
+      foto2: act.foto2,
       rawFile: undefined,
+      rawFile2: undefined,
       absensiSiswa: { ...act.absensiSiswa },
       absensiSiswi: { ...act.absensiSiswi },
       isEditing: true,
@@ -269,7 +290,9 @@ export default function App() {
     materi: string;
     keterangan: string;
     foto?: string;
+    foto2?: string;
     rawFile?: File;
+    rawFile2?: File;
   }) => {
     setTempActivity((prev) => ({
       ...prev,
@@ -290,9 +313,10 @@ export default function App() {
 
     try {
       let gdrivePhotoId = tempActivity.foto || "";
+      let gdrivePhotoId2 = tempActivity.foto2 || "";
 
       // If a raw local file was chosen in Step 1, upload it to Google Drive first!
-      if (tempActivity.rawFile) {
+      if (tempActivity.rawFile || tempActivity.rawFile2) {
         setGlobalLoadingText("Mengunggah foto ke Google Drive...");
 
         const token = await new Promise<string>((resolve, reject) => {
@@ -302,7 +326,12 @@ export default function App() {
           });
         });
 
-        gdrivePhotoId = await uploadFileToGDrive(tempActivity.rawFile, token);
+        if (tempActivity.rawFile) {
+          gdrivePhotoId = await uploadFileToGDrive(tempActivity.rawFile, token);
+        }
+        if (tempActivity.rawFile2) {
+          gdrivePhotoId2 = await uploadFileToGDrive(tempActivity.rawFile2, token);
+        }
       }
 
       setGlobalLoadingText("Menyimpan data presensi ke Firestore...");
@@ -319,6 +348,7 @@ export default function App() {
         waktuSelesai: tempActivity.waktuSelesai,
         catatan: tempActivity.keterangan,
         gdrive_photo_id: gdrivePhotoId,
+        gdrive_photo_id2: gdrivePhotoId2,
         dibuat_oleh: auth.currentUser?.uid || "unknown",
         created_at: serverTimestamp()
       };
@@ -488,177 +518,411 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f6f4] dark:bg-[#07130e] text-slate-800 dark:text-emerald-100 flex items-center justify-center p-0 md:p-4 transition-colors duration-300">
+    <div className="min-h-screen bg-[#f3f6f4] dark:bg-[#07130e] text-slate-800 dark:text-emerald-100 flex items-center justify-center transition-colors duration-300">
 
-      {/* Visual Ambient Scouting Wilderness Background elements for desktop */}
-      <div className="fixed inset-0 pointer-events-none hidden md:block">
-        <div className="absolute top-10 left-10 w-44 h-44 bg-pramuka-green rounded-full filter blur-3xl opacity-5 dark:opacity-10" />
-        <div className="absolute bottom-10 right-10 w-56 h-56 bg-pramuka-gold rounded-full filter blur-3xl opacity-5 dark:opacity-10" />
 
-        {/* Floating clouds/stars representation on background margins */}
-        <div className="absolute top-1/4 left-15 bg-white/20 dark:bg-emerald-950/10 border border-gray-100 dark:border-emerald-900/10 p-4 rounded-2xl flex items-center gap-2.5 text-xs text-slate-450 shadow-sm animate-pulse">
-          <Calendar className="w-5 h-5 text-pramuka-green" />
-          <div className="font-mono">
-            <p className="font-bold">SMKN 13 BANDUNG</p>
-            <p className="text-[10px]">LAVOISIER || MARIA ANNE</p>
-          </div>
-        </div>
 
-        <div className="absolute bottom-1/4 right-15 bg-white/20 dark:bg-emerald-950/10 border border-gray-100 dark:border-emerald-900/10 p-4 rounded-2xl flex items-center gap-2.5 text-xs text-slate-450 shadow-sm animate-pulse" style={{ animationDelay: "1s" }}>
-          <Award className="w-5 h-5 text-pramuka-gold" />
-          <div className="font-mono">
-            <p className="font-bold">Buah Batu</p>
-            <p className="text-[10px]">Sistem absensi digital</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Smartphone Frame Body Wrapper */}
-      <div className="w-full md:max-w-[420px] h-screen md:h-[840px] md:rounded-[36px] overflow-hidden shadow-[0_24px_60px_-15px_rgba(0,0,0,0.15)] bg-white dark:bg-pramuka-dark-bg border-4 border-transparent md:border-emerald-900/80 dark:md:border-pramuka-green-dark flex flex-col justify-between relative transition-all duration-300">
-
-        {/* Header (Top) - Hide on Login Screen */}
-        {currentScreen !== "LOGIN" && (
-          <Header
-            darkMode={darkMode}
-            setDarkMode={setDarkMode}
-            loggedInUser={loggedInUser}
-            currentUserRole={currentUserRole}
-            onLogout={handleLogout}
-          />
-        )}
-
-        {/* Dynamic Screen Mounting Center Section */}
-        <main className="flex-1 bg-gray-50/50 dark:bg-pramuka-dark-bg/40 relative overflow-y-auto">
-
-          {/* Ambient organic patterns on inner frame bg */}
+      {/* RENDER LOGIN SCREEN FULL SCREEN FOR DESKTOP & MOBILE IF NOT LOGGED IN */}
+      {currentScreen === "LOGIN" ? (
+        <div className="w-full max-w-[420px] h-screen md:h-[760px] md:rounded-[36px] overflow-hidden shadow-[0_24px_60px_-15px_rgba(0,0,0,0.15)] bg-white dark:bg-pramuka-dark-bg border border-transparent md:border-emerald-900/40 dark:md:border-pramuka-green-dark flex flex-col justify-center relative transition-all duration-300">
           <div className={`absolute inset-0 pointer-events-none ${darkMode ? "scout-pattern-dark" : "scout-pattern"}`} />
-
-          {currentScreen === "LOGIN" && (
-            <LoginScreen onLoginSuccess={handleLoginSuccess} />
-          )}
-
-          {currentScreen === "DASHBOARD" && (
-            <DashboardScreen
-              activities={activities}
-              siswaList={siswaList}
-              siswiList={siswiList}
-              onNavigate={(sc) => setCurrentScreen(sc)}
-              onViewActivityDetail={(act) => {
-                // Navigate to review and instantly trigger details modal by simulation!
-                setCurrentScreen("REVIEW");
-              }}
-            />
-          )}
-
-          {currentScreen === "ADMIN_PANEL" && (
-            <AdminPanelScreen
-              students={students}
-              onAddStudent={handleAddStudent}
-              onUpdateStudent={handleUpdateStudent}
-              onDeleteStudent={handleDeleteStudent}
-              onNavigateBack={() => setCurrentScreen("DASHBOARD")}
-              onViewStudentDetail={(student) => {
-                setSelectedStudent(student);
-                setCurrentScreen("STUDENT_DETAIL");
-              }}
+          <LoginScreen onLoginSuccess={handleLoginSuccess} />
+        </div>
+      ) : (
+        <>
+          {/* MOBILE VIEW (Hides on lg screens) */}
+          <div className="md:hidden w-full max-w-[420px] h-screen flex flex-col justify-between relative overflow-hidden bg-white dark:bg-pramuka-dark-bg">
+            <Header
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+              loggedInUser={loggedInUser}
               currentUserRole={currentUserRole}
-              onNavigateToUserManagement={() => setCurrentScreen("USER_MANAGEMENT")}
+              onLogout={handleLogout}
             />
-          )}
+            <main className="flex-1 bg-gray-50/50 dark:bg-pramuka-dark-bg/40 relative overflow-y-auto">
+              <div className={`absolute inset-0 pointer-events-none ${darkMode ? "scout-pattern-dark" : "scout-pattern"}`} />
+              
+              {currentScreen === "DASHBOARD" && (
+                <DashboardScreen
+                  activities={activities}
+                  siswaList={siswaList}
+                  siswiList={siswiList}
+                  onNavigate={(sc) => setCurrentScreen(sc)}
+                  onViewActivityDetail={(act) => {
+                    setCurrentScreen("REVIEW");
+                  }}
+                />
+              )}
 
-          {currentScreen === "USER_MANAGEMENT" && (
-            <UserManagementScreen
-              onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
+              {currentScreen === "ADMIN_PANEL" && (
+                <AdminPanelScreen
+                  students={students}
+                  onAddStudent={handleAddStudent}
+                  onUpdateStudent={handleUpdateStudent}
+                  onDeleteStudent={handleDeleteStudent}
+                  onNavigateBack={() => setCurrentScreen("DASHBOARD")}
+                  onViewStudentDetail={(student) => {
+                    setSelectedStudent(student);
+                    setCurrentScreen("STUDENT_DETAIL");
+                  }}
+                  currentUserRole={currentUserRole}
+                  onNavigateToUserManagement={() => setCurrentScreen("USER_MANAGEMENT")}
+                />
+              )}
+
+              {currentScreen === "USER_MANAGEMENT" && (
+                <UserManagementScreen
+                  onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
+                />
+              )}
+
+              {currentScreen === "STUDENT_DETAIL" && selectedStudent && (
+                <StudentDetailScreen
+                  student={selectedStudent}
+                  activities={activities}
+                  onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
+                />
+              )}
+
+              {currentScreen === "INPUT_STEP1" && (
+                <FormKegiatanStep1
+                  initialData={tempActivity}
+                  onNext={handleStep1Next}
+                  onCancel={() => setCurrentScreen("DASHBOARD")}
+                />
+              )}
+
+              {currentScreen === "INPUT_STEP2" && (
+                <FormAbsensiSiswa
+                  step={2}
+                  students={siswaList}
+                  attendance={tempActivity.absensiSiswa}
+                  onToggleAttendance={toggleSiswaAttendance}
+                  onSetAllAttendance={setAllSiswaAttendance}
+                  onBack={() => setCurrentScreen("INPUT_STEP1")}
+                  onNext={handleStep2Next}
+                  onSave={() => { }}
+                />
+              )}
+
+              {currentScreen === "INPUT_STEP3" && (
+                <FormAbsensiSiswa
+                  step={3}
+                  students={siswiList}
+                  attendance={tempActivity.absensiSiswi}
+                  onToggleAttendance={toggleSiswiAttendance}
+                  onSetAllAttendance={setAllSiswiAttendance}
+                  onBack={() => setCurrentScreen("INPUT_STEP2")}
+                  onNext={() => { }}
+                  onSave={handleSaveActivity}
+                />
+              )}
+
+              {currentScreen === "REVIEW" && (
+                <ReviewScreen
+                  activities={activities}
+                  siswaList={siswaList}
+                  siswiList={siswiList}
+                  onDeleteActivity={handleDeleteActivity}
+                  onEditActivity={startEditActivity}
+                  onNavigateToGenerate={() => setCurrentScreen("GENERATE")}
+                />
+              )}
+
+              {currentScreen === "GENERATE" && (
+                <GenerateScreen
+                  activities={activities}
+                  siswaList={siswaList}
+                  siswiList={siswiList}
+                />
+              )}
+            </main>
+
+            <BottomNav
+              currentScreen={currentScreen}
+              onNavigate={(screen) => setCurrentScreen(screen)}
+              onStartInput={startNewInput}
             />
-          )}
-
-          {currentScreen === "STUDENT_DETAIL" && selectedStudent && (
-            <StudentDetailScreen
-              student={selectedStudent}
-              activities={activities}
-              onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
-            />
-          )}
-
-          {currentScreen === "INPUT_STEP1" && (
-            <FormKegiatanStep1
-              initialData={tempActivity}
-              onNext={handleStep1Next}
-              onCancel={() => setCurrentScreen("DASHBOARD")}
-            />
-          )}
-
-          {currentScreen === "INPUT_STEP2" && (
-            <FormAbsensiSiswa
-              step={2}
-              students={siswaList}
-              attendance={tempActivity.absensiSiswa}
-              onToggleAttendance={toggleSiswaAttendance}
-              onSetAllAttendance={setAllSiswaAttendance}
-              onBack={() => setCurrentScreen("INPUT_STEP1")}
-              onNext={handleStep2Next}
-              onSave={() => { }} // not saved yet in step 2
-            />
-          )}
-
-          {currentScreen === "INPUT_STEP3" && (
-            <FormAbsensiSiswa
-              step={3}
-              students={siswiList}
-              attendance={tempActivity.absensiSiswi}
-              onToggleAttendance={toggleSiswiAttendance}
-              onSetAllAttendance={setAllSiswiAttendance}
-              onBack={() => setCurrentScreen("INPUT_STEP2")}
-              onNext={() => { }} // not needed in step 3
-              onSave={handleSaveActivity}
-            />
-          )}
-
-          {currentScreen === "REVIEW" && (
-            <ReviewScreen
-              activities={activities}
-              siswaList={siswaList}
-              siswiList={siswiList}
-              onDeleteActivity={handleDeleteActivity}
-              onEditActivity={startEditActivity}
-              onNavigateToGenerate={() => setCurrentScreen("GENERATE")}
-            />
-          )}
-
-          {currentScreen === "GENERATE" && (
-            <GenerateScreen
-              activities={activities}
-              siswaList={siswaList}
-              siswiList={siswiList}
-            />
-          )}
-        </main>
-
-        {/* Global Toast Notifications banner */}
-        {showSuccessToast && (
-          <div className="absolute top-[80px] left-4 right-4 bg-slate-900 border border-emerald-800 text-white p-3.5 rounded-2xl shadow-xl z-50 flex items-center gap-2.5 animate-fade-in text-[12px] font-sans font-bold leading-normal">
-            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{showSuccessToast}</span>
           </div>
-        )}
 
-        {/* Global Fullscreen Loading Overlay */}
-        {isGlobalLoading && (
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm z-[100] flex flex-col items-center justify-center text-white text-xs font-bold gap-3.5">
-            <span className="animate-spin text-pramuka-gold text-2xl">⏳</span>
-            <span className="font-mono tracking-wide text-center px-4 leading-normal">{globalLoadingText}</span>
+          {/* DESKTOP VIEW (Visible on lg screens) */}
+          <div className="hidden md:flex w-full h-screen bg-white dark:bg-pramuka-dark-bg flex-row transition-all duration-300">
+            {/* Sidebar Navigation */}
+            <aside className="w-64 bg-slate-50 dark:bg-[#0c1f14] border-r border-gray-200 dark:border-pramuka-green-dark/40 flex flex-col justify-between p-5">
+              <div className="space-y-6">
+                {/* Logo and Brand */}
+                <div className="flex items-center gap-3">
+                  <div className="bg-pramuka-green p-2 rounded-xl text-white">
+                    <Sparkles className="w-5 h-5 text-pramuka-gold" />
+                  </div>
+                  <div>
+                    <h1 className="font-extrabold text-sm tracking-tight text-slate-800 dark:text-emerald-50">SIGAP 13</h1>
+                    <p className="text-[10px] text-gray-400 dark:text-emerald-500 uppercase tracking-wider font-mono">Absensi Pramuka</p>
+                  </div>
+                </div>
+
+                {/* Navigation Menu */}
+                <nav className="space-y-1">
+                  <button
+                    onClick={() => setCurrentScreen("DASHBOARD")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      currentScreen === "DASHBOARD"
+                        ? "bg-pramuka-green text-white dark:bg-pramuka-green-dark"
+                        : "text-slate-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-[#0d2618]"
+                    }`}
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </button>
+
+                  <button
+                    onClick={startNewInput}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      ["INPUT_STEP1", "INPUT_STEP2", "INPUT_STEP3"].includes(currentScreen)
+                        ? "bg-pramuka-green text-white dark:bg-pramuka-green-dark"
+                        : "text-slate-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-[#0d2618]"
+                    }`}
+                  >
+                    <ClipboardCheck className="w-4 h-4" />
+                    <span>Catat Kegiatan & Absen</span>
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentScreen("ADMIN_PANEL")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      ["ADMIN_PANEL", "USER_MANAGEMENT", "STUDENT_DETAIL"].includes(currentScreen)
+                        ? "bg-pramuka-green text-white dark:bg-pramuka-green-dark"
+                        : "text-slate-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-[#0d2618]"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Data Anggota</span>
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentScreen("REVIEW")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      currentScreen === "REVIEW"
+                        ? "bg-pramuka-green text-white dark:bg-pramuka-green-dark"
+                        : "text-slate-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-[#0d2618]"
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Review Kegiatan</span>
+                  </button>
+
+                  <button
+                    onClick={() => setCurrentScreen("GENERATE")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      currentScreen === "GENERATE"
+                        ? "bg-pramuka-green text-white dark:bg-pramuka-green-dark"
+                        : "text-slate-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-[#0d2618]"
+                    }`}
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Cetak Laporan</span>
+                  </button>
+
+                  {currentUserRole === "PEMBINA" && (
+                    <button
+                      onClick={() => setCurrentScreen("USER_MANAGEMENT")}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        currentScreen === "USER_MANAGEMENT"
+                          ? "bg-pramuka-green text-white dark:bg-pramuka-green-dark"
+                          : "text-slate-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-[#0d2618]"
+                      }`}
+                    >
+                      <UserCog className="w-4 h-4" />
+                      <span>Kelola Pengguna</span>
+                    </button>
+                  )}
+                </nav>
+              </div>
+
+              {/* Bottom Profile and Dark Mode */}
+              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-pramuka-green-dark/40">
+                {/* Dark Mode toggle */}
+                <div className="flex items-center justify-between px-3">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-emerald-500">Mode Gelap</span>
+                  <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    className="p-1.5 rounded-lg bg-gray-200 dark:bg-[#0d2618] text-slate-600 dark:text-pramuka-gold hover:opacity-80 transition-all cursor-pointer"
+                  >
+                    {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                {/* Profile Box */}
+                <div className="flex items-center justify-between bg-slate-100 dark:bg-emerald-950/20 p-3 rounded-2xl border border-slate-200/50 dark:border-emerald-900/20">
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold truncate text-slate-800 dark:text-white">Kak {loggedInUser}</p>
+                    <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">{currentUserRole}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    title="Keluar"
+                    className="text-rose-500 hover:text-rose-600 p-1.5 rounded bg-white hover:bg-rose-50 dark:bg-emerald-950/50 dark:hover:bg-rose-950/20 border border-slate-200 dark:border-emerald-900 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </aside>
+
+            {/* Desktop Content Panel */}
+            <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-pramuka-dark-bg/20 relative overflow-hidden">
+              {/* Header Top bar */}
+              <header className="h-16 border-b border-gray-200 dark:border-pramuka-green-dark/30 px-6 flex items-center justify-between bg-white dark:bg-pramuka-dark-bg z-10">
+                <div className="flex items-center gap-3">
+                  {/* Back button simulation if inside a deep screen */}
+                  {["USER_MANAGEMENT", "STUDENT_DETAIL"].includes(currentScreen) && (
+                    <button
+                      onClick={() => {
+                        if (currentScreen === "USER_MANAGEMENT") setCurrentScreen("ADMIN_PANEL");
+                        if (currentScreen === "STUDENT_DETAIL") setCurrentScreen("ADMIN_PANEL");
+                      }}
+                      className="p-2 rounded-xl bg-slate-50 dark:bg-[#0c1f14] border border-gray-200 dark:border-emerald-900 text-slate-600 dark:text-emerald-100 hover:bg-slate-100 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                  )}
+                  <h2 className="font-extrabold text-sm text-slate-800 dark:text-white uppercase tracking-wide">
+                    {currentScreen === "DASHBOARD" && "Dashboard Ringkasan"}
+                    {currentScreen === "ADMIN_PANEL" && "Administrasi Anggota"}
+                    {currentScreen === "USER_MANAGEMENT" && "Pengaturan Hak Akses Akun"}
+                    {currentScreen === "STUDENT_DETAIL" && "Rincian Profil Anggota"}
+                    {currentScreen === "INPUT_STEP1" && "Pencatatan Baru (Materi & Detail)"}
+                    {currentScreen === "INPUT_STEP2" && "Absensi Anggota Putra (Siswa)"}
+                    {currentScreen === "INPUT_STEP3" && "Absensi Anggota Putri (Siswi)"}
+                    {currentScreen === "REVIEW" && "Riwayat Latihan Pramuka"}
+                    {currentScreen === "GENERATE" && "Ekspor & Cetak Laporan"}
+                  </h2>
+                </div>
+                <div className="text-[11px] font-bold font-mono bg-slate-100 dark:bg-emerald-950/40 border border-slate-200/50 dark:border-emerald-900/40 px-3 py-1 rounded-full text-slate-500 dark:text-emerald-400">
+                  SMKN 13 BANDUNG • ABSENSI PRAMUKA DIGITAL
+                </div>
+              </header>
+
+              {/* Inner screen area */}
+              <main className="flex-1 overflow-y-auto p-6 relative">
+                <div className={`absolute inset-0 pointer-events-none ${darkMode ? "scout-pattern-dark" : "scout-pattern"}`} />
+                <div className="relative z-10 max-w-6xl mx-auto w-full">
+                  {currentScreen === "DASHBOARD" && (
+                    <DashboardScreen
+                      activities={activities}
+                      siswaList={siswaList}
+                      siswiList={siswiList}
+                      onNavigate={(sc) => setCurrentScreen(sc)}
+                      onViewActivityDetail={(act) => {
+                        setCurrentScreen("REVIEW");
+                      }}
+                    />
+                  )}
+
+                  {currentScreen === "ADMIN_PANEL" && (
+                    <AdminPanelScreen
+                      students={students}
+                      onAddStudent={handleAddStudent}
+                      onUpdateStudent={handleUpdateStudent}
+                      onDeleteStudent={handleDeleteStudent}
+                      onNavigateBack={() => setCurrentScreen("DASHBOARD")}
+                      onViewStudentDetail={(student) => {
+                        setSelectedStudent(student);
+                        setCurrentScreen("STUDENT_DETAIL");
+                      }}
+                      currentUserRole={currentUserRole}
+                      onNavigateToUserManagement={() => setCurrentScreen("USER_MANAGEMENT")}
+                    />
+                  )}
+
+                  {currentScreen === "USER_MANAGEMENT" && (
+                    <UserManagementScreen
+                      onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
+                    />
+                  )}
+
+                  {currentScreen === "STUDENT_DETAIL" && selectedStudent && (
+                    <StudentDetailScreen
+                      student={selectedStudent}
+                      activities={activities}
+                      onNavigateBack={() => setCurrentScreen("ADMIN_PANEL")}
+                    />
+                  )}
+
+                  {currentScreen === "INPUT_STEP1" && (
+                    <FormKegiatanStep1
+                      initialData={tempActivity}
+                      onNext={handleStep1Next}
+                      onCancel={() => setCurrentScreen("DASHBOARD")}
+                    />
+                  )}
+
+                  {currentScreen === "INPUT_STEP2" && (
+                    <FormAbsensiSiswa
+                      step={2}
+                      students={siswaList}
+                      attendance={tempActivity.absensiSiswa}
+                      onToggleAttendance={toggleSiswaAttendance}
+                      onSetAllAttendance={setAllSiswaAttendance}
+                      onBack={() => setCurrentScreen("INPUT_STEP1")}
+                      onNext={handleStep2Next}
+                      onSave={() => { }}
+                    />
+                  )}
+
+                  {currentScreen === "INPUT_STEP3" && (
+                    <FormAbsensiSiswa
+                      step={3}
+                      students={siswiList}
+                      attendance={tempActivity.absensiSiswi}
+                      onToggleAttendance={toggleSiswiAttendance}
+                      onSetAllAttendance={setAllSiswiAttendance}
+                      onBack={() => setCurrentScreen("INPUT_STEP2")}
+                      onNext={() => { }}
+                      onSave={handleSaveActivity}
+                    />
+                  )}
+
+                  {currentScreen === "REVIEW" && (
+                    <ReviewScreen
+                      activities={activities}
+                      siswaList={siswaList}
+                      siswiList={siswiList}
+                      onDeleteActivity={handleDeleteActivity}
+                      onEditActivity={startEditActivity}
+                      onNavigateToGenerate={() => setCurrentScreen("GENERATE")}
+                    />
+                  )}
+
+                  {currentScreen === "GENERATE" && (
+                    <GenerateScreen
+                      activities={activities}
+                      siswaList={siswaList}
+                      siswiList={siswiList}
+                    />
+                  )}
+                </div>
+              </main>
+            </div>
           </div>
-        )}
+        </>
+      )}
 
-        {/* Navigation Bar (Bottom) - Hide on Login Screen */}
-        {currentScreen !== "LOGIN" && (
-          <BottomNav
-            currentScreen={currentScreen}
-            onNavigate={(screen) => setCurrentScreen(screen)}
-            onStartInput={startNewInput}
-          />
-        )}
-      </div>
+      {/* Global Toast Notifications banner */}
+      {showSuccessToast && (
+        <div className="fixed top-6 right-6 bg-slate-900 border border-emerald-800 text-white p-3.5 rounded-2xl shadow-xl z-50 flex items-center gap-2.5 animate-fade-in text-[12px] font-sans font-bold leading-normal">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{showSuccessToast}</span>
+        </div>
+      )}
+
+      {/* Global Fullscreen Loading Overlay */}
+      {isGlobalLoading && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[100] flex flex-col items-center justify-center text-white text-xs font-bold gap-3.5">
+          <span className="animate-spin text-pramuka-gold text-2xl">⏳</span>
+          <span className="font-mono tracking-wide text-center px-4 leading-normal">{globalLoadingText}</span>
+        </div>
+      )}
     </div>
   );
 }

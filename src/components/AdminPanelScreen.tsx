@@ -341,8 +341,8 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
 
       {/* MODAL 1: ADD MEMBER */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in">
-          <div className="bg-white dark:bg-[#091711] w-full max-w-sm rounded-t-[24px] max-h-[90vh] overflow-y-auto p-5 space-y-4 border-t border-gray-200 dark:border-emerald-900 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center animate-fade-in p-0 md:p-4">
+          <div className="bg-white dark:bg-[#091711] w-full max-w-sm rounded-t-[24px] md:rounded-[24px] max-h-[90vh] overflow-y-auto p-5 space-y-4 border-t md:border border-gray-200 dark:border-emerald-900 shadow-2xl">
             <div className="flex items-center justify-between border-b pb-2 border-gray-100 dark:border-emerald-950">
               <h3 className="font-sans font-black text-gray-800 dark:text-slate-100 text-sm">
                 Tambah Anggota Baru
@@ -470,8 +470,8 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
 
       {/* MODAL 2: EDIT MEMBER */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center animate-fade-in">
-          <div className="bg-white dark:bg-[#091711] w-full max-w-sm rounded-t-[24px] max-h-[90vh] overflow-y-auto p-5 space-y-4 border-t border-gray-200 dark:border-emerald-900 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center animate-fade-in p-0 md:p-4">
+          <div className="bg-white dark:bg-[#091711] w-full max-w-sm rounded-t-[24px] md:rounded-[24px] max-h-[90vh] overflow-y-auto p-5 space-y-4 border-t md:border border-gray-200 dark:border-emerald-900 shadow-2xl">
             <div className="flex items-center justify-between border-b pb-2 border-gray-100 dark:border-emerald-950">
               <h3 className="font-sans font-black text-gray-800 dark:text-slate-100 text-sm">
                 Ubah Data Anggota
@@ -598,7 +598,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
 
       {/* MODAL 3: DELETE CONFIRMATION */}
       {studentToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-55 flex items-end justify-center animate-fade-in p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-55 flex items-end md:items-center justify-center animate-fade-in p-4">
           <div className="bg-white dark:bg-[#0d2318] w-full max-w-sm rounded-[24px] overflow-hidden shadow-2xl border border-gray-100 dark:border-emerald-900 p-5 space-y-4">
             <div className="text-center space-y-2">
               <div className="bg-rose-50 dark:bg-rose-950/20 w-12 h-12 rounded-full flex items-center justify-center text-rose-500 mx-auto border border-rose-100 dark:border-rose-950">

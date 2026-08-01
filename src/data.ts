@@ -8,7 +8,7 @@ export const CLASS_OPTIONS = [
   "X TJKT 1", "X TJKT 2", "X TJKT 3",
   "XI TJKT 1", "XI TJKT 2", "XI TJKT 3",
   "XII TJKT 1", "XII TJKT 2", "XII TJKT 3",
-
+  
   "X KA 1", "X KA 2", "X KA 3", "X KA 4", "X KA 5", "X KA 6",
   "XI KA 1", "XI KA 2", "XI KA 3", "XI KA 4", "XI KA 5", "XI KA 6",
   "XII KA 1", "XII KA 2", "XII KA 3", "XII KA 4", "XII KA 5", "XII KA 6",

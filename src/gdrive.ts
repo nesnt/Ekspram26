@@ -94,6 +94,43 @@ export const uploadFileToGDrive = async (file: File, token: string): Promise<str
   return result.id; // Google Drive File ID
 };
 
+// Upload and convert Word document (.docx) to Google Docs format
+export const uploadWordToGoogleDocs = async (blob: Blob, filename: string, token: string): Promise<string> => {
+  const parentFolderId = import.meta.env.NEXT_PUBLIC_GOOGLE_DRIVE_PARENT_FOLDER_ID;
+
+  const metadata = {
+    name: filename,
+    mimeType: "application/vnd.google-apps.document", // Convert to Google Docs
+    parents: parentFolderId ? [parentFolderId] : [],
+  };
+
+  const form = new FormData();
+  form.append(
+    "metadata",
+    new Blob([JSON.stringify(metadata)], { type: "application/json" })
+  );
+  form.append("file", blob);
+
+  const response = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: form,
+    }
+  );
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gagal upload ke Google Drive: ${response.statusText} - ${errText}`);
+  }
+
+  const result = await response.json();
+  return result.webViewLink || `https://docs.google.com/document/d/${result.id}/edit`;
+};
+
 // Helper to get Google Drive image source or fallback base64/url
 export const getPhotoUrl = (foto?: string): string => {
   if (!foto) return "";
