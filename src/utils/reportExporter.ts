@@ -94,11 +94,11 @@ function replaceParagraphWithTable(p: Element, leftText1: string, rightText1: st
       <w:tr>
         <w:tc>
           <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
-          <w:p><w:pPr><w:spacing w:before="1000"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${leftText2}</w:t></w:r></w:p>
+          <w:p><w:pPr><w:spacing w:before="1000"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:b/><w:u w:val="single"/></w:rPr><w:t>${leftText2}</w:t></w:r></w:p>
         </w:tc>
         <w:tc>
           <w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>
-          <w:p><w:pPr><w:spacing w:before="1000"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr><w:t>${rightText2}</w:t></w:r></w:p>
+          <w:p><w:pPr><w:spacing w:before="1000"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/><w:b/><w:u w:val="single"/></w:rPr><w:t>${rightText2}</w:t></w:r></w:p>
         </w:tc>
       </w:tr>
       <w:tr>
