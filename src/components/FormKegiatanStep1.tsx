@@ -11,7 +11,9 @@ interface FormKegiatanStep1Props {
     materi: string;
     keterangan: string;
     foto?: string;
+    foto2?: string;
     rawFile?: File;
+    rawFile2?: File;
   };
   onNext: (data: {
     tanggal: string;
@@ -20,7 +22,9 @@ interface FormKegiatanStep1Props {
     materi: string;
     keterangan: string;
     foto?: string;
+    foto2?: string;
     rawFile?: File;
+    rawFile2?: File;
   }) => void;
   onCancel: () => void;
 }
@@ -37,8 +41,11 @@ export const FormKegiatanStep1: React.FC<FormKegiatanStep1Props> = ({
   const [keterangan, setKeterangan] = useState(initialData.keterangan || "");
   const [foto, setFoto] = useState<string | undefined>(initialData.foto);
   const [rawFile, setRawFile] = useState<File | undefined>(initialData.rawFile);
+  const [foto2, setFoto2] = useState<string | undefined>(initialData.foto2);
+  const [rawFile2, setRawFile2] = useState<File | undefined>(initialData.rawFile2);
 
-  const [dragActive, setDragActive] = useState(false);
+  const [dragActive1, setDragActive1] = useState(false);
+  const [dragActive2, setDragActive2] = useState(false);
   const [errorText, setErrorText] = useState("");
 
   const handlePresetSelect = (preset: { name: string; desc: string }) => {
@@ -46,46 +53,56 @@ export const FormKegiatanStep1: React.FC<FormKegiatanStep1Props> = ({
     setKeterangan(preset.desc);
   };
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = (file: File, isPhoto2: boolean = false) => {
     if (!file.type.startsWith("image/")) {
       setErrorText("Berkas harus berupa gambar (PNG/JPG)");
       return;
     }
     setErrorText("");
-    setRawFile(file);
-
-    // Show local preview instantly
     const localUrl = URL.createObjectURL(file);
-    setFoto(localUrl);
-  };
 
-  const handleRemovePhoto = () => {
-    setFoto(undefined);
-    setRawFile(undefined);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
+    if (isPhoto2) {
+      setRawFile2(file);
+      setFoto2(localUrl);
+    } else {
+      setRawFile(file);
+      setFoto(localUrl);
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
+  const handleDrag = (e: React.DragEvent, isPhoto2: boolean = false) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
+      if (isPhoto2) setDragActive2(true); else setDragActive1(true);
     } else if (e.type === "dragleave") {
-      setDragActive(false);
+      if (isPhoto2) setDragActive2(false); else setDragActive1(false);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, isPhoto2: boolean = false) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(false);
+    if (isPhoto2) setDragActive2(false); else setDragActive1(false);
+    
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
+      handleFileUpload(e.dataTransfer.files[0], isPhoto2);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isPhoto2: boolean = false) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileUpload(e.target.files[0], isPhoto2);
+    }
+  };
+
+  const handleRemovePhoto = (isPhoto2: boolean = false) => {
+    if (isPhoto2) {
+      setFoto2(undefined);
+      setRawFile2(undefined);
+    } else {
+      setFoto(undefined);
+      setRawFile(undefined);
     }
   };
 
@@ -107,7 +124,9 @@ export const FormKegiatanStep1: React.FC<FormKegiatanStep1Props> = ({
       materi,
       keterangan,
       foto,
+      foto2,
       rawFile,
+      rawFile2,
     });
   };
 
@@ -256,59 +275,80 @@ export const FormKegiatanStep1: React.FC<FormKegiatanStep1Props> = ({
         {/* Upload Dokumentasi */}
         <div className="bg-white dark:bg-[#0d2318] p-4 rounded-2xl border border-gray-100 dark:border-pramuka-green-dark shadow-sm space-y-3">
           <h3 className="text-xs uppercase font-mono tracking-wider font-bold text-gray-400 dark:text-emerald-700 flex items-center gap-1.5 border-b pb-2 border-gray-100 dark:border-emerald-950/40">
-            <ImageIcon className="w-3.5 h-3.5" /> Dokumentasi Foto
+            <ImageIcon className="w-3.5 h-3.5" /> Dokumentasi Foto Latihan
           </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* PHOTO 1 */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-emerald-300 block mb-1">Foto Utama (Gambar 1)</label>
+              {!foto ? (
+                <div
+                  onDragEnter={(e) => handleDrag(e, false)}
+                  onDragOver={(e) => handleDrag(e, false)}
+                  onDragLeave={(e) => handleDrag(e, false)}
+                  onDrop={(e) => handleDrop(e, false)}
+                  className={`border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer relative ${
+                    dragActive1
+                      ? "border-pramuka-gold bg-pramuka-gold/5"
+                      : "border-gray-200 dark:border-emerald-900 hover:border-pramuka-green"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, false)}
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    aria-label="Upload photo 1"
+                  />
+                  <div className="space-y-1 pointer-events-none flex flex-col items-center">
+                    <ImageIcon className="w-5 h-5 text-gray-400" />
+                    <div className="text-[10px]"><span className="text-pramuka-green">Pilih Foto 1</span></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative rounded-xl overflow-hidden border p-1">
+                  <img src={getPhotoUrl(foto)} alt="Preview 1" className="w-full h-24 object-cover rounded" />
+                  <button type="button" onClick={() => handleRemovePhoto(false)} className="absolute top-2 right-2 bg-black/60 p-1 rounded-full"><Trash2 className="w-3 h-3 text-rose-400" /></button>
+                </div>
+              )}
+            </div>
 
-          {!foto ? (
-            <div
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer relative ${
-                dragActive
-                  ? "border-pramuka-gold bg-pramuka-gold/5"
-                  : "border-gray-200 dark:border-emerald-900 hover:border-pramuka-green"
-              }`}
-            >
-              <input
-                type="file"
-                id="file-photo-upload"
-                onChange={handleFileChange}
-                accept="image/*"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                aria-label="Upload photo"
-              />
-              <div className="space-y-2 pointer-events-none flex flex-col items-center">
-                <div className="bg-gray-50 dark:bg-emerald-950/20 p-2.5 rounded-full text-gray-400 dark:text-emerald-700">
-                  <ImageIcon className="w-6 h-6" />
+            {/* PHOTO 2 */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 dark:text-emerald-300 block mb-1">Foto Tambahan (Gambar 2)</label>
+              {!foto2 ? (
+                <div
+                  onDragEnter={(e) => handleDrag(e, true)}
+                  onDragOver={(e) => handleDrag(e, true)}
+                  onDragLeave={(e) => handleDrag(e, true)}
+                  onDrop={(e) => handleDrop(e, true)}
+                  className={`border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer relative ${
+                    dragActive2
+                      ? "border-pramuka-gold bg-pramuka-gold/5"
+                      : "border-gray-200 dark:border-emerald-900 hover:border-pramuka-green"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, true)}
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    aria-label="Upload photo 2"
+                  />
+                  <div className="space-y-1 pointer-events-none flex flex-col items-center">
+                    <ImageIcon className="w-5 h-5 text-gray-400" />
+                    <div className="text-[10px]"><span className="text-pramuka-green">Pilih Foto 2</span></div>
+                  </div>
                 </div>
-                <div className="text-xs">
-                  <span className="font-bold text-pramuka-green dark:text-pramuka-gold">Tarik foto kemari</span> atau klik untuk memotret/memilih berkas
+              ) : (
+                <div className="relative rounded-xl overflow-hidden border p-1">
+                  <img src={getPhotoUrl(foto2)} alt="Preview 2" className="w-full h-24 object-cover rounded" />
+                  <button type="button" onClick={() => handleRemovePhoto(true)} className="absolute top-2 right-2 bg-black/60 p-1 rounded-full"><Trash2 className="w-3 h-3 text-rose-400" /></button>
                 </div>
-                <p className="text-[10px] text-gray-400 font-mono">PNG, JPG, JPEG (Maks. 5MB)</p>
-              </div>
+              )}
             </div>
-          ) : (
-            <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-emerald-950/20 border border-gray-100 dark:border-emerald-900/60 p-2 max-w-sm mx-auto">
-              <img
-                src={getPhotoUrl(foto)}
-                alt="Upload preview"
-                className="w-full h-36 object-cover rounded-lg"
-              />
-              <button
-                type="button"
-                onClick={handleRemovePhoto}
-                aria-label="Remove photo"
-                className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white p-1.5 rounded-full transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4 text-rose-400" />
-              </button>
-              <div className="absolute bottom-4 left-4 right-4 bg-black/50 text-[10px] text-white py-1 px-2.5 rounded backdrop-blur-sm truncate font-mono text-center">
-                Gambar dipilih (belum diunggah)
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Buttons Nav */}

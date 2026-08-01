@@ -2,21 +2,14 @@ import React, { useState, useMemo } from "react";
 import { Activity, Student } from "../types";
 import { TunasKelapaIcon, TendaIcon, BintangTigaIcon } from "./Icons";
 import { exportReportToDocx } from "../utils/reportExporter";
+import { requestGoogleToken, uploadWordToGoogleDocs, getPhotoUrl } from "../gdrive";
 import { 
   Download, 
-  Share2, 
   CheckCircle, 
   Printer, 
-  Calendar, 
   Award, 
-  CheckSquare, 
-  Clock, 
-  FileText, 
-  Search,
   Sparkles,
   RefreshCw,
-  Mail,
-  Send,
   BookOpen,
   X
 } from "lucide-react";
@@ -27,6 +20,42 @@ interface GenerateScreenProps {
   siswiList: Student[];
 }
 
+const indonesianMonthsList = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+const indonesianDaysList = [
+  "Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
+];
+
+const formatDDMMYY = (dateStr: string): string => {
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0].substring(2)}`;
+};
+
+const formatTanggalBulanTahun = (dateStr: string): string => {
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  const day = parseInt(parts[2], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const monthName = indonesianMonthsList[monthIdx] || "";
+  return `${day} ${monthName} ${parts[0]}`;
+};
+
+const formatHariTanggalBulanTahun = (dateStr: string): string => {
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const d = parseInt(parts[2], 10);
+  const dateObj = new Date(y, m, d);
+  const dayName = indonesianDaysList[dateObj.getDay()] || "";
+  const monthName = indonesianMonthsList[m] || "";
+  return `${dayName}, ${d} ${monthName} ${y}`;
+};
+
 export const GenerateScreen: React.FC<GenerateScreenProps> = ({
   activities,
   siswaList,
@@ -35,10 +64,10 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
   const [selectedBulan, setSelectedBulan] = useState("05"); // default May as mock activities are in May
   const [selectedTahun, setSelectedTahun] = useState("2026");
   const [pembinaName, setPembinaName] = useState("Kak Heru Wijaya, S.Pd., L.T.");
-  const [kamabigusName, setKamabigusName] = useState("Drs. H. Mulyadi, M.Pd. (Kepala Sekolah)");
+  const [kamabigusName, setKamabigusName] = useState("Drs. H. Mulyadi, M.Pd.");
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isUploadingGDocs, setIsUploadingGDocs] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   // Month words in Indonesian
@@ -138,8 +167,38 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
     window.print();
   };
 
-  const handleShare = () => {
-    setShowShareModal(true);
+  const handleOpenInGoogleDocs = () => {
+    setIsUploadingGDocs(true);
+    setDownloadError(null);
+
+    requestGoogleToken(async (token) => {
+      try {
+        const namaBulan = namaBulanMap[selectedBulan] || "BULAN";
+        const filename = `LAPORAN_BULANAN_PRAMUKA_${namaBulan.toUpperCase()}_${selectedTahun}.docx`;
+
+        const blob = await exportReportToDocx({
+          activities,
+          siswaList,
+          siswiList,
+          selectedBulan,
+          selectedTahun,
+          pembinaName,
+          kamabigusName
+        });
+
+        const webViewLink = await uploadWordToGoogleDocs(blob, filename, token);
+        window.open(webViewLink, "_blank");
+
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 4000);
+      } catch (err: any) {
+        console.error(err);
+        setDownloadError(err.message || "Gagal membuka di Google Docs.");
+        setTimeout(() => setDownloadError(null), 5000);
+      } finally {
+        setIsUploadingGDocs(false);
+      }
+    });
   };
 
   return (
@@ -236,122 +295,243 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
             />
           </div>
         </div>
+      </div>    {/* High-Fidelity Mini Print Preview Card (looks exactly like the resulting PDF/Word sheet!) */}
+    <div className="bg-white p-5 rounded-2xl border-2 border-emerald-900 border-dashed text-slate-800 shadow-lg relative overflow-hidden dark:text-slate-800">
+      {/* Coconut watermark shadow */}
+      <div className="absolute inset-x-0 bottom-4 flex justify-center opacity-[0.03] select-none pointer-events-none transform scale-150">
+        <TunasKelapaIcon className="w-56 h-56 text-pramuka-green" />
       </div>
 
-      {/* High-Fidelity Mini Print Preview Card (looks exactly like the resulting PDF sheet!) */}
-      <div className="bg-white p-5 rounded-2xl border-2 border-emerald-900 border-dashed text-slate-800 shadow-lg relative overflow-hidden dark:text-slate-800">
-        {/* Coconut watermark shadow */}
-        <div className="absolute inset-x-0 bottom-4 flex justify-center opacity-[0.03] select-none pointer-events-none transform scale-150">
-          <TunasKelapaIcon className="w-56 h-56 text-pramuka-green" />
-        </div>
+      {/* Mini Preview Sticker */}
+      <div className="absolute right-0 top-0 bg-pramuka-gold text-slate-950 text-[9px] font-mono font-black py-1 px-3.5 uppercase tracking-wider rounded-bl-xl shadow-sm z-15 flex items-center gap-1">
+        <Sparkles className="w-3 h-3 animate-spin-slow" /> Preview Laporan Cetak
+      </div>
 
-        {/* Mini Preview Sticker */}
-        <div className="absolute right-0 top-0 bg-pramuka-gold text-slate-950 text-[9px] font-mono font-black py-1 px-3.5 uppercase tracking-wider rounded-bl-xl shadow-sm z-15 flex items-center gap-1">
-          <Sparkles className="w-3 h-3 animate-spin-slow" /> Preview Laporan Cetak
+      {/* Formal Kop Lapor */}
+      <div className="border-b-2 border-slate-950 pb-2.5 text-center relative z-10">
+        <div className="flex justify-center mb-1">
+          <TunasKelapaIcon className="w-7 h-7 text-emerald-900" />
         </div>
+        <h4 className="font-serif font-extrabold text-[12px] uppercase leading-none tracking-tight">
+          Gerakan Pramuka Indonesia
+        </h4>
+        <p className="text-[10px] font-bold font-serif uppercase tracking-wide mt-1 leading-none">
+          Gugus Depan 11.025 - 11.026 - Pangkalan SMPN Merdeka
+        </p>
+        <p className="text-[8px] font-mono text-gray-500 uppercase mt-1 leading-none">
+          REKAPITULASI LAPORAN BULANAN • PERIODE {namaBulanMap[selectedBulan].toUpperCase()} {selectedTahun}
+        </p>
+      </div>
 
-        {/* Formal Kop Lapor */}
-        <div className="border-b-2 border-slate-950 pb-2.5 text-center relative z-10">
-          <div className="flex justify-center mb-1">
-            <TunasKelapaIcon className="w-7 h-7 text-emerald-900" />
+      {/* Mini Report Document Body */}
+      <div className="py-3 text-[10px] leading-relaxed relative z-10 space-y-4">
+        {/* Table list simulation inside doc */}
+        {filteredActivities.length === 0 ? (
+          <div className="text-center py-4 border border-dashed border-gray-200 text-gray-400 text-[9px]">
+            *Tidak ada kegiatan latihan rutin tercatat pada periode bulan ini.
           </div>
-          <h4 className="font-serif font-extrabold text-[12px] uppercase leading-none tracking-tight">
-            Gerakan Pramuka Indonesia
-          </h4>
-          <p className="text-[10px] font-bold font-serif uppercase tracking-wide mt-1 leading-none">
-            Gugus Depan 11.025 - 11.026 - Pangkalan SMPN Merdeka
-          </p>
-          <p className="text-[8px] font-mono text-gray-500 uppercase mt-1 leading-none">
-            REKAPITULASI LAPORAN BULANAN • PERIODE {namaBulanMap[selectedBulan]} {selectedTahun}
-          </p>
-        </div>
-
-        {/* Mini Report Document Body */}
-        <div className="py-3 text-[10px] leading-relaxed relative z-10 space-y-3.5">
-          <div>
-            <p className="font-semibold text-slate-800 text-[11px]">
-              Telah diselenggarakan latihan rutin dengan rincian kegiatan sebagai berikut:
-            </p>
-          </div>
-
-          {/* Table list simulation inside doc */}
-          {filteredActivities.length === 0 ? (
-            <div className="text-center py-4 border border-dashed border-gray-200 text-gray-400 text-[9px]">
-              *Tidak ada kegiatan latihan rutin tercatat pada periode bulan ini.
-            </div>
-          ) : (
-            <div className="border border-slate-950 rounded overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 font-mono text-[8px] border-b border-slate-950">
-                    <th className="p-1 border-r border-slate-950">Tgl</th>
-                    <th className="p-1 border-r border-slate-950">Materi</th>
-                    <th className="p-1 text-center">Kehadiran (PA/PI)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredActivities.map((act) => {
-                    const pa = Object.values(act.absensiSiswa).filter(Boolean).length;
-                    const pi = Object.values(act.absensiSiswi).filter(Boolean).length;
-                    return (
-                      <tr key={act.id} className="border-b border-slate-300 last:border-0 font-sans text-[8px]">
-                        <td className="p-1 border-r border-slate-950 font-mono font-bold">{act.tanggal.substring(5)}</td>
-                        <td className="p-1 border-r border-slate-950 truncate max-w-[120px] font-semibold">{act.materi}</td>
-                        <td className="p-1 text-center font-mono">{pa} L / {pi} P</td>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <p className="font-bold text-slate-800 text-[9px] mb-1 uppercase tracking-wider">A. DAFTAR KEGIATAN LATIHAN</p>
+              <div className="border border-slate-950 rounded overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 font-mono text-[8px] border-b border-slate-950">
+                      <th className="p-1 border-r border-slate-950 w-[5%] text-center">No</th>
+                      <th className="p-1 border-r border-slate-950 w-[25%]">Hari, Tanggal</th>
+                      <th className="p-1 border-r border-slate-950 w-[20%]">Waktu</th>
+                      <th className="p-1 w-[50%]">Materi Kegiatan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredActivities.map((act, idx) => (
+                      <tr key={act.id} className="border-b border-slate-950 last:border-0 font-sans text-[8px]">
+                        <td className="p-1 border-r border-slate-950 text-center font-mono">{idx + 1}</td>
+                        <td className="p-1 border-r border-slate-950 font-semibold">{formatTanggalBulanTahun(act.tanggal)}</td>
+                        <td className="p-1 border-r border-slate-950 font-mono">{act.waktuMulai} sd. {act.waktuSelesai}</td>
+                        <td className="p-1 font-semibold">{act.materi}</td>
                       </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Attendance Putra */}
+            <div>
+              <p className="font-bold text-slate-800 text-[9px] mb-1 uppercase tracking-wider">B. ABSENSI ANGGOTA PUTRA</p>
+              <div className="border border-slate-950 rounded overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 font-sans text-[8px] border-b border-slate-950 text-center">
+                      <th rowSpan={2} className="p-1 border-r border-slate-950 w-[40%] align-middle font-normal">Nama</th>
+                      <th rowSpan={2} className="p-1 border-r border-slate-950 w-[12%] align-middle font-normal">Kelas</th>
+                      <th colSpan={4} className="p-1 border-slate-950 border-b font-normal">Tanggal</th>
+                    </tr>
+                    <tr className="bg-slate-100 font-sans text-[8px] border-b border-slate-950">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <th key={i} className="p-1 border-r last:border-r-0 border-slate-950 text-center font-normal text-[7px] w-[12%]">
+                          {filteredActivities[i] ? formatDDMMYY(filteredActivities[i].tanggal) : ``}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {siswaList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-2 text-center text-gray-400 text-[8px]">Tidak ada data anggota putra</td>
+                      </tr>
+                    ) : (
+                      [...siswaList].sort((a, b) => a.name.localeCompare(b.name)).map((student) => (
+                        <tr key={student.id} className="border-b border-slate-950 last:border-0 font-sans text-[8px]">
+                          <td className="p-1 border-r border-slate-950 truncate max-w-[120px] font-semibold">{student.name}</td>
+                          <td className="p-1 border-r border-slate-950 text-center font-mono">{student.kelas}</td>
+                          {Array.from({ length: 4 }).map((_, i) => {
+                            const act = filteredActivities[i];
+                            const isPresent = act ? act.absensiSiswa[student.id] === true : false;
+                            return (
+                              <td key={i} className="p-1 border-r last:border-r-0 border-slate-950 text-center font-mono font-bold text-emerald-700">
+                                {act ? (isPresent ? "✓" : "") : ""}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Attendance Putri */}
+            <div>
+              <p className="font-bold text-slate-800 text-[9px] mb-1 uppercase tracking-wider">C. ABSENSI ANGGOTA PUTRI</p>
+              <div className="border border-slate-950 rounded overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 font-sans text-[8px] border-b border-slate-950 text-center">
+                      <th rowSpan={2} className="p-1 border-r border-slate-950 w-[40%] align-middle font-normal">Nama</th>
+                      <th rowSpan={2} className="p-1 border-r border-slate-950 w-[12%] align-middle font-normal">Kelas</th>
+                      <th colSpan={4} className="p-1 border-slate-950 border-b font-normal">Tanggal</th>
+                    </tr>
+                    <tr className="bg-slate-100 font-sans text-[8px] border-b border-slate-950">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <th key={i} className="p-1 border-r last:border-r-0 border-slate-950 text-center font-normal text-[7px] w-[12%]">
+                          {filteredActivities[i] ? formatDDMMYY(filteredActivities[i].tanggal) : ``}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {siswiList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-2 text-center text-gray-400 text-[8px]">Tidak ada data anggota putri</td>
+                      </tr>
+                    ) : (
+                      [...siswiList].sort((a, b) => a.name.localeCompare(b.name)).map((student) => (
+                        <tr key={student.id} className="border-b border-slate-950 last:border-0 font-sans text-[8px]">
+                          <td className="p-1 border-r border-slate-950 truncate max-w-[120px] font-semibold">{student.name}</td>
+                          <td className="p-1 border-r border-slate-950 text-center font-mono">{student.kelas}</td>
+                          {Array.from({ length: 4 }).map((_, i) => {
+                            const act = filteredActivities[i];
+                            const isPresent = act ? act.absensiSiswi[student.id] === true : false;
+                            return (
+                              <td key={i} className="p-1 border-r last:border-r-0 border-slate-950 text-center font-mono font-bold text-emerald-700">
+                                {act ? (isPresent ? "✓" : "") : ""}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Documentation / Photos */}
+            {filteredActivities.some(act => act.foto) && (
+              <div>
+                <p className="font-bold text-slate-800 text-[9px] mb-1 uppercase tracking-wider">D. DOKUMENTASI KEGIATAN</p>
+                <div className="grid grid-cols-2 gap-3 border border-slate-950 p-2 rounded">
+                  {filteredActivities.slice(0, 4).map((act, i) => {
+                    if (!act.foto) return null;
+                    return (
+                      <div key={act.id} className="text-center space-y-1">
+                        <img 
+                          src={getPhotoUrl(act.foto)} 
+                          alt={`Dokumentasi ${i + 1}`} 
+                          className="w-full h-24 object-cover rounded border border-slate-300"
+                        />
+                        <p className="text-[7px] text-gray-600 font-semibold font-mono">
+                          {formatHariTanggalBulanTahun(act.tanggal)}
+                        </p>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* Abstract signatures at footer */}
-          <div className="grid grid-cols-2 text-center text-[8px] font-sans pt-3 border-t border-slate-200 gap-4 mt-2">
-            <div>
-              <p>Mengetahui,</p>
-              <p className="font-bold underline mt-8 truncate">{pembinaName}</p>
-              <p className="text-gray-400">Pembina Gugusdepan</p>
-            </div>
-            <div>
-              <p>Menyetujui,</p>
-              <p className="font-bold underline mt-8 truncate">{kamabigusName}</p>
-              <p className="text-gray-400">Kamabigus / Kepala Sekolah</p>
-            </div>
+        {/* Abstract signatures at footer */}
+        <div className="grid grid-cols-2 text-center text-[8px] font-sans pt-3 border-t border-slate-200 gap-4 mt-2">
+          <div>
+            <p>Mengetahui,</p>
+            <p className="font-bold underline mt-8 truncate">{kamabigusName}</p>
+            <p className="text-gray-400">Kamabigus / Kepala Sekolah</p>
+          </div>
+          <div>
+            <p>Menyetujui,</p>
+            <p className="font-bold underline mt-8 truncate">{pembinaName}</p>
+            <p className="text-gray-400">Pembina Gugusdepan</p>
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Primary Print / Download Action Buttons */}
-      <div className="grid grid-cols-2 gap-3 pt-1">
-        <button
-          onClick={handleDownload}
-          id="btn-print-download"
-          disabled={isDownloading}
-          className="bg-pramuka-green dark:bg-pramuka-green-dark border border-pramuka-green-light hover:border-pramuka-gold text-white font-extrabold py-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 shadow-md active:scale-95 disabled:opacity-50"
-        >
-          {isDownloading ? (
-            <div className="flex items-center gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Memroses...</span>
-            </div>
-          ) : (
-            <>
-              <Download className="w-4 h-4 shrink-0" />
-              <span>Download Laporan (Word)</span>
-            </>
-          )}
-        </button>
+    {/* Primary Print / Download Action Buttons */}
+    <div className="grid grid-cols-2 gap-3 pt-1">
+      <button
+        onClick={handleDownload}
+        id="btn-print-download"
+        disabled={isDownloading || isUploadingGDocs}
+        className="bg-pramuka-green dark:bg-pramuka-green-dark border border-pramuka-green-light hover:border-pramuka-gold text-white font-extrabold py-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 shadow-md active:scale-95 disabled:opacity-50"
+      >
+        {isDownloading ? (
+          <div className="flex items-center gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>Memroses...</span>
+          </div>
+        ) : (
+          <>
+            <Download className="w-4 h-4 shrink-0" />
+            <span>Download Laporan (Word)</span>
+          </>
+        )}
+      </button>
 
-        <button
-          onClick={handleShare}
-          id="btn-print-share"
-          className="bg-white dark:bg-[#0c1f14] border border-gray-200 dark:border-emerald-900 text-gray-700 dark:text-emerald-100 font-extrabold py-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-emerald-950/20 active:scale-95 transition-all"
-        >
-          <Share2 className="w-4 h-4 shrink-0" />
-          <span>Bagikan Laporan</span>
-        </button>
-      </div>
+      <button
+        onClick={handleOpenInGoogleDocs}
+        id="btn-open-gdocs"
+        disabled={isUploadingGDocs || isDownloading}
+        className="bg-white dark:bg-[#0c1f14] border border-gray-200 dark:border-emerald-900 text-gray-700 dark:text-emerald-100 font-extrabold py-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-emerald-950/20 active:scale-95 transition-all disabled:opacity-50"
+      >
+        {isUploadingGDocs ? (
+          <div className="flex items-center gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>Membuka...</span>
+          </div>
+        ) : (
+          <>
+            <BookOpen className="w-4 h-4 shrink-0 text-blue-500" />
+            <span>Buka di Google Docs</span>
+          </>
+        )}
+      </button>
+    </div>
 
       {/* Web Printer Action banner if they are on a desktop */}
       <div className="bg-emerald-50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-950/40 p-3.5 rounded-2xl flex items-center justify-between text-xs text-gray-600 dark:text-emerald-200 gap-3">
@@ -384,64 +564,6 @@ export const GenerateScreen: React.FC<GenerateScreenProps> = ({
         </div>
       )}
 
-      {/* MODAL 1: Share menu overlay */}
-      {showShareModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
-          <div className="bg-white dark:bg-[#0d2318] w-full max-w-sm rounded-[24px] overflow-hidden shadow-2xl border border-gray-100 dark:border-emerald-900 p-5 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2 border-gray-100 dark:border-emerald-950/40">
-              <h3 className="font-sans font-black text-gray-800 dark:text-slate-100 text-sm">Bagikan Laporan Mingguan</h3>
-              <button 
-                onClick={() => setShowShareModal(false)}
-                className="text-gray-400 hover:text-gray-650 p-1 rounded-full cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowShareModal(false);
-                  alert("Tautan Berhasil disalin ke Clipboard!");
-                }}
-                className="p-3 text-center border border-gray-100 dark:border-emerald-950 hover:border-pramuka-gold rounded-xl cursor-pointer bg-slate-50 dark:bg-emerald-950/20"
-              >
-                <Send className="w-5 h-5 mx-auto text-sky-500 mb-1" />
-                <p className="text-[9px] font-bold text-gray-500">Kirim Link</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setShowShareModal(false);
-                  alert("Daftar Hadir Laporan Terkirim ke Grup WhatsApp!");
-                }}
-                className="p-3 text-center border border-gray-100 dark:border-emerald-950 hover:border-pramuka-gold rounded-xl cursor-pointer bg-slate-50 dark:bg-emerald-950/20"
-              >
-                <Share2 className="w-5 h-5 mx-auto text-green-500 mb-1" />
-                <p className="text-[9px] font-bold text-gray-500">WhatsApp</p>
-              </button>
-
-              <button
-                type="button"
-                className="p-3 text-center border border-gray-100 dark:border-emerald-950 hover:border-pramuka-gold rounded-xl cursor-pointer bg-slate-50 dark:bg-emerald-950/20"
-                onClick={() => {
-                  setShowShareModal(false);
-                  alert("Terkirim ke Email Pengurus Kwartir Ranting!");
-                }}
-              >
-                <Mail className="w-5 h-5 mx-auto text-[#f4a800] mb-1" />
-                <p className="text-[9px] font-bold text-gray-500">Email Kwaran</p>
-              </button>
-            </div>
-            
-            <p className="text-[10px] text-gray-400 font-mono text-center">
-              *Laporan dikompilasi ke format ZIP / PDF Ringkas sebelum dikirim.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

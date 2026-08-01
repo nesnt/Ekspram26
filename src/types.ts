@@ -27,6 +27,7 @@ export interface Activity {
   materi: string;
   keterangan: string;
   foto?: string; // Base64 data url or fallback placeholder
+  foto2?: string; // Second optional photo for side-by-side documentation
   absensiSiswa: { [studentId: string]: boolean }; // student.id -> isPresent
   absensiSiswi: { [studentId: string]: boolean }; // student.id -> isPresent
 }
