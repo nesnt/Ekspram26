@@ -24,6 +24,12 @@ interface UserManagementScreenProps {
 }
 
 const ROLE_LABELS: Record<UserRole, { label: string; color: string; bg: string; border: string }> = {
+  ADMIN: {
+    label: "Admin Utama",
+    color: "text-purple-700 dark:text-purple-400",
+    bg: "bg-purple-50 dark:bg-purple-950/20",
+    border: "border-purple-200 dark:border-purple-950",
+  },
   PEMBINA: {
     label: "Pembina Pelatih",
     color: "text-amber-700 dark:text-amber-400",

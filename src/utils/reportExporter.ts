@@ -584,7 +584,8 @@ export async function exportReportToDocx({
           const toDelete = prev;
           prev = prev.previousSibling;
           // Only delete if it doesn't contain images/drawings
-          if (toDelete.getElementsByTagName("w:drawing").length === 0 && toDelete.getElementsByTagName("v:shape").length === 0) {
+          const el = toDelete as Element;
+          if (el.getElementsByTagName && el.getElementsByTagName("w:drawing").length === 0 && el.getElementsByTagName("v:shape").length === 0) {
             toDelete.parentNode?.removeChild(toDelete);
           }
         }

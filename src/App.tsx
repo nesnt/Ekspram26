@@ -29,7 +29,8 @@ import {
   LogOut,
   Moon,
   Sun,
-  ArrowLeft
+  ArrowLeft,
+  AlertTriangle
 } from "lucide-react";
 import { auth, db } from "./firebase";
 import {
@@ -67,22 +68,40 @@ export default function App() {
 
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [globalLoadingText, setGlobalLoadingText] = useState("");
+  const [firestoreError, setFirestoreError] = useState<string | null>(null);
 
   // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        onSnapshot(userDocRef, (docSnapshot) => {
-          if (docSnapshot.exists()) {
-            const data = docSnapshot.data();
-            setLoggedInUser(data.username || firebaseUser.email?.split("@")[0] || "User");
-            setCurrentUserRole((data.role as UserRole) || "KRANI");
-          } else {
+        onSnapshot(
+          userDocRef,
+          (docSnapshot) => {
+            if (docSnapshot.exists()) {
+              const data = docSnapshot.data();
+              setLoggedInUser(data.username || firebaseUser.email?.split("@")[0] || "User");
+              const role = (data.role === "ADMIN" || data.role === "PEMBINA") ? "PEMBINA" : (data.role as UserRole) || "KRANI";
+              setCurrentUserRole(role);
+            } else {
+              setLoggedInUser(firebaseUser.email?.split("@")[0] || "User");
+              if (firebaseUser.email?.toLowerCase().includes("admin")) {
+                setCurrentUserRole("PEMBINA");
+              } else {
+                setCurrentUserRole("KRANI");
+              }
+            }
+          },
+          (err) => {
+            console.warn("Firestore user profile warning:", err.message);
             setLoggedInUser(firebaseUser.email?.split("@")[0] || "User");
-            setCurrentUserRole("KRANI");
+            if (firebaseUser.email?.toLowerCase().includes("admin")) {
+              setCurrentUserRole("PEMBINA");
+            } else {
+              setCurrentUserRole("KRANI");
+            }
           }
-        });
+        );
         setCurrentScreen("DASHBOARD");
       } else {
         setLoggedInUser(null);
@@ -96,20 +115,32 @@ export default function App() {
   // Listen students (anggota)
   useEffect(() => {
     const q = query(collection(db, "anggota"), orderBy("nama", "asc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: Student[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        list.push({
-          id: doc.id,
-          name: data.nama,
-          regu: data.regu,
-          type: data.tipe,
-          kelas: data.kelas || "X RPL 1",
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: Student[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          list.push({
+            id: doc.id,
+            name: data.nama,
+            regu: data.regu,
+            type: data.tipe,
+            kelas: data.kelas || "X RPL 1",
+          });
         });
-      });
-      setStudents(list);
-    });
+        setStudents(list);
+        setFirestoreError(null);
+      },
+      (err) => {
+        console.error("Firestore 'anggota' error:", err);
+        if (err.code === "permission-denied") {
+          setFirestoreError(
+            "Izin Firestore ditolak (permission-denied). Perbarui Security Rules di Firebase Console agar data dapat dimuat."
+          );
+        }
+      }
+    );
     return () => unsubscribe();
   }, []);
 
@@ -119,38 +150,48 @@ export default function App() {
 
   // Listen kegiatan
   useEffect(() => {
-    if (students.length === 0) {
-      setDbActivities([]);
-      return;
-    }
-
     const q = query(collection(db, "kegiatan"), orderBy("tanggal", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: any[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() });
-      });
-      setDbActivities(list);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((doc) => {
+          list.push({ id: doc.id, ...doc.data() });
+        });
+        setDbActivities(list);
+      },
+      (err) => {
+        console.error("Firestore 'kegiatan' error:", err);
+        if (err.code === "permission-denied") {
+          setFirestoreError(
+            "Izin Firestore ditolak (permission-denied). Perbarui Security Rules di Firebase Console agar data dapat dimuat."
+          );
+        }
+      }
+    );
     return () => unsubscribe();
-  }, [students]);
+  }, []);
 
   // Listen to absensi
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "absensi"), (snapshot) => {
-      const list: any[] = [];
-      snapshot.forEach((doc) => {
-        list.push(doc.data());
-      });
-      setDbAbsensi(list);
-    });
+    const unsubscribe = onSnapshot(
+      collection(db, "absensi"),
+      (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data());
+        });
+        setDbAbsensi(list);
+      },
+      (err) => {
+        console.error("Firestore 'absensi' error:", err);
+      }
+    );
     return () => unsubscribe();
   }, []);
 
   // Merge dbActivities & dbAbsensi to activities state
   useEffect(() => {
-    if (students.length === 0) return;
-
     const mapped: Activity[] = dbActivities.map((act) => {
       const absensiSiswa: { [studentId: string]: boolean } = {};
       const absensiSiswi: { [studentId: string]: boolean } = {};
@@ -185,12 +226,12 @@ export default function App() {
       return {
         id: act.id,
         tanggal: act.tanggal,
-        waktuMulai: act.waktuMulai,
-        waktuSelesai: act.waktuSelesai,
-        materi: act.judul,
-        keterangan: act.catatan,
-        foto: act.gdrive_photo_id,
-        foto2: act.gdrive_photo_id2,
+        waktuMulai: act.waktuMulai || "14:00",
+        waktuSelesai: act.waktuSelesai || "16:00",
+        materi: act.judul || act.materi || "-",
+        keterangan: act.catatan || act.keterangan || "",
+        foto: act.gdrive_photo_id || act.foto,
+        foto2: act.gdrive_photo_id2 || act.foto2,
         absensiSiswa,
         absensiSiswi
       };
@@ -542,6 +583,17 @@ export default function App() {
             <main className="flex-1 bg-gray-50/50 dark:bg-pramuka-dark-bg/40 relative overflow-y-auto">
               <div className={`absolute inset-0 pointer-events-none ${darkMode ? "scout-pattern-dark" : "scout-pattern"}`} />
               
+              {firestoreError && (
+                <div className="relative z-20 m-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 flex items-start gap-2.5 text-xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-amber-700 dark:text-amber-300">{firestoreError}</p>
+                    <p className="text-[10px] text-amber-800/80 dark:text-amber-200/80">
+                      Buka Firebase Console &gt; Firestore &gt; Rules, ubah aturan menjadi <code className="px-1 bg-amber-500/20 rounded font-mono">allow read, write: if request.auth != null;</code> lalu klik Publish.
+                    </p>
+                  </div>
+                </div>
+              )}
               {currentScreen === "DASHBOARD" && (
                 <DashboardScreen
                   activities={activities}
@@ -807,6 +859,20 @@ export default function App() {
               <main className="flex-1 overflow-y-auto p-6 relative">
                 <div className={`absolute inset-0 pointer-events-none ${darkMode ? "scout-pattern-dark" : "scout-pattern"}`} />
                 <div className="relative z-10 w-full">
+                  {firestoreError && (
+                    <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 flex items-start gap-3 shadow-sm">
+                      <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-1">
+                        <p className="font-bold text-amber-700 dark:text-amber-300 text-sm">
+                          Pemberitahuan Sinkronisasi Database Firestore
+                        </p>
+                        <p className="text-xs">{firestoreError}</p>
+                        <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">
+                          Solusi: Buka <a href="https://console.firebase.google.com/project/prakrani13/firestore/rules" target="_blank" rel="noreferrer" className="underline font-bold text-amber-600 dark:text-amber-300">Firebase Console &gt; Firestore Rules</a> dan perbarui aturan menjadi <code className="px-1 py-0.5 bg-black/10 rounded font-mono">allow read, write: if request.auth != null;</code> lalu klik <strong>Publish</strong>. File konfigurasi <code className="px-1 py-0.5 bg-black/10 rounded font-mono">firestore.rules</code> telah disediakan di root proyek.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   {currentScreen === "DASHBOARD" && (
                     <DashboardScreen
                       activities={activities}

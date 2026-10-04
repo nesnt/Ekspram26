@@ -2,7 +2,7 @@
  * Types representing Scout Administration Application "SiGAP 13"
  */
 
-export type UserRole = "PEMBINA" | "KRANI";
+export type UserRole = "PEMBINA" | "KRANI" | "ADMIN";
 
 export interface AppUser {
   uid: string;
